@@ -21,6 +21,14 @@
 .report-table{width:100%;border-collapse:collapse}
 .report-table th,.report-table td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
 .report-table th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.matrix-table{width:100%;border-collapse:collapse;min-width:680px}
+.matrix-table th,.matrix-table td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.matrix-table th{text-align:right;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.matrix-table th:first-child,.matrix-table td:first-child{text-align:left}
+.matrix-table td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.matrix-category td{background:rgba(255,255,255,.04);font-weight:900;color:var(--accent2);border-top:2px solid var(--line)}
+.matrix-subtotal td{font-weight:900;background:rgba(255,255,255,.025)}
+.matrix-total td{font-weight:950;font-size:16px;border-top:2px solid var(--accent);background:rgba(255,122,26,.07)}
 .setup-item-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,auto);gap:14px;padding:12px 0;border-top:1px solid var(--line);align-items:center}
 .setup-item-row:first-child{border-top:0}
 .setup-item-main,.setup-item-side{min-width:0}
@@ -121,8 +129,10 @@
   <div id="reportsContent">
     <div class="card" id="reportControls">
       <div class="form-row">
-        <div class="field"><label>Question / scoring item</label><select id="reportItemSelect"></select></div>
-        <div class="field"><label>Sprint Team</label><select id="reportTeamSelect"><option value="">All Sprint Teams</option></select></div><div class="field"><label>Sort</label><select id="reportSortSelect"><option value="team">Sprint Team, then first name</option><option value="name">First name</option></select></div>
+        <div class="field"><label>Report Type</label><select id="reportTypeSelect"><option value="individual">Individual Responses</option><option value="matrix">Scoring Matrix</option></select></div>
+        <div class="field" id="reportItemField"><label>Question / scoring item</label><select id="reportItemSelect"></select></div>
+        <div class="field" id="reportTeamField"><label>Sprint Team</label><select id="reportTeamSelect"><option value="">All Sprint Teams</option></select></div>
+        <div class="field" id="reportSortField"><label>Sort</label><select id="reportSortSelect"><option value="team">Sprint Team, then first name</option><option value="name">First name</option></select></div>
       </div>
       <div class="inline-actions">
         <button class="secondary" id="reportRefreshBtn">View report</button>
@@ -143,7 +153,7 @@
   <div class="section-title"><h2>Categories & scoring items</h2><span class="tiny">Category-first design</span></div><div class="card"><div class="notice">Create categories first, then scoring items inside them. Category totals update automatically so you can see the relative emphasis.</div><div id="setupCategories" class="stack" style="margin-top:10px"></div><button class="secondary" id="addCategoryBtn">+ Add category</button></div>
   <div class="section-title"><h2>Sprint lifecycle</h2></div><div class="card"><p style="margin-top:0">Freeze the completed sprint so its teams, evidence and scores remain a historical record.</p><button class="primary" id="freezeBtn">Freeze Sprint</button><button class="ghost" id="resetBtn" style="margin-top:8px;width:100%">Reset prototype data</button></div>
 </div></section>
-</main><footer>v11.2 shared MVP · verified due-date saves · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
+</main><footer>v11.3 shared MVP · scoring matrix report · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
 <div class="modal" id="modal"><div class="sheet"><button class="ghost close" onclick="closeModal()">Close</button><div id="modalContent"></div></div></div>
 <script>
 const KEY='millionPointsSharedMVP_local';
@@ -314,7 +324,7 @@ function resultHasEvidence(r){
 function roleLabel(p){return p.role==='coach'?'Coach':p.role==='scoringMentor'?'Scoring Mentor':p.role==='guest'?'Guest · View Only':'Sprint Team Member'}
 function ruleLabel(i){return{completion:'Completion',perPerson:'Points per person',count:'Count × points',partial:'Partial credit',externalPercent:'External % × points',certifications:'New certifications',memberField:'Member information %',manual:'Manual positive award',manualAwards:'Judge / discretionary awards'}[i.rule]||i.rule}
 function itemDisplayPoints(i){if(i.rule==='certifications')return `${money(i.points)} each · uncapped`;if(i.rule==='perPerson')return `${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`;if(i.rule==='count')return `${money(i.points)} each${i.cap?' · max '+i.cap:' · uncapped'}`;if(i.rule==='memberField')return i.memberScoring==='perPersonBonus'?`${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`:`${money(i.points)} at 100% complete`;if(i.rule==='manual'||i.rule==='manualAwards')return 'uncapped';return money(i.points)}
-function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v11.2 shared test`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
+function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v11.3 shared test`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
 function renderLeaderboard(){const sorted=[...state.teams].sort((a,b)=>teamTotal(b.id)-teamTotal(a.id));leaderboardRows.innerHTML=sorted.map((t,idx)=>`<tr><td class="rank">${idx+1}</td><td><button class="linkbtn" onclick="showTeam('${t.id}')">${esc(teamName(t))}</button></td><td><b>${teamTotal(t.id)?money(teamTotal(t.id)):'—'}</b></td></tr>`).join('')}
 function renderWeighting(){const baseTeam=state.teams[0];const rows=state.categories.map(c=>({c,p:catPossible(c.id,baseTeam)}));const cappedTotal=rows.reduce((s,x)=>s+x.p.total,0)||1;categoryWeighting.innerHTML=rows.map(({c,p})=>`<div class="card"><div class="meta"><b>${c.name}</b><span>${money(p.total)}${p.uncapped?' + uncapped':''}</span></div><div class="weightbar"><span style="width:${Math.min(100,p.total/cappedTotal*100)}%"></span></div><div class="tiny">${(p.total/cappedTotal*100).toFixed(0)}% of currently capped points${p.uncapped?' · plus uncapped opportunities':''}</div></div>`).join('')}
 function evidenceSummary(team,item){const r=result(team.id,item.id);if(item.rule==='completion')return r.text?(isUrl(r.text)?'Link submitted':r.text):'Not yet submitted';if(item.rule==='perPerson')return `${(r.people||[]).length}/${r.rosterSize||teamMembers(team.id).length} members`;if(item.rule==='count')return `${r.count||0} counted`;if(item.rule==='partial'||item.rule==='externalPercent')return `${r.percent||0}%`;if(item.rule==='certifications')return `${(r.entries||[]).length} certifications`;if(item.rule==='memberField'){const values=r.values||{};const done=teamMembers(team.id).filter(m=>memberFieldComplete(item,values[m.name])).length;return `${done}/${r.rosterSize||teamMembers(team.id).length} members`};if(item.rule==='manual')return r.note||'No award yet';if(item.rule==='manualAwards')return `${(r.awards||[]).length} award${(r.awards||[]).length===1?'':'s'}`;return ''}
@@ -560,6 +570,37 @@ function reportRows(item,teamId=''){
 }
 function renderChangeLog(){if(!window.changeLogOutput)return;const log=[...(state.changeLog||[])].sort((a,b)=>String(b.at||'').localeCompare(String(a.at||''))).slice(0,100);changeLogOutput.innerHTML=log.length?log.map(e=>`<div class="log-row"><div><b>${esc(e.actor||'Unknown')}</b> — ${esc(e.summary||e.action||'Changed data')}</div><div class="log-time">${e.at?new Date(e.at).toLocaleString():''}${e.teamName?' · '+esc(e.teamName):''}${e.itemName?' · '+esc(e.itemName):''}</div>${e.detail?`<div class="tiny" style="margin-top:3px">${esc(e.detail)}</div>`:''}</div>`).join(''):'<div class="tiny">No v10 change-log entries yet. Earlier changes were not retroactively recorded.</div>'}
 
+
+function matrixTeams(){return sortedTeams()}
+function matrixRows(){
+  const teams=matrixTeams(),rows=[];
+  for(const c of state.categories){
+    const items=state.items.filter(i=>i.categoryId===c.id);
+    if(!items.length)continue;
+    rows.push({type:'category',label:c.name});
+    for(const i of items){
+      rows.push({type:'item',label:i.name,item:i,values:teams.map(t=>Number(result(t.id,i.id).points||0))});
+    }
+    rows.push({type:'subtotal',label:c.name+' subtotal',values:teams.map(t=>categoryEarned(t.id,c.id))});
+  }
+  rows.push({type:'total',label:'TOTAL',values:teams.map(t=>teamTotal(t.id))});
+  return {teams,rows};
+}
+function renderMatrixReport(){
+  const d=matrixRows();
+  reportOutput.innerHTML=`<div class="eyebrow">Sprint Report</div><h2 style="margin:4px 0">Scoring Matrix</h2><div class="sub" style="margin-bottom:10px">Points by scoring item and Sprint Team</div><div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Category / Scoring Item</th>${d.teams.map(t=>`<th>${esc(teamName(t))}</th>`).join('')}</tr></thead><tbody>${d.rows.map(r=>{if(r.type==='category')return `<tr class="matrix-category"><td colspan="${d.teams.length+1}">${esc(r.label)}</td></tr>`;const cls=r.type==='subtotal'?'matrix-subtotal':r.type==='total'?'matrix-total':'';return `<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map(v=>`<td>${money(v)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>`;
+}
+function matrixReportData(){
+  const d=matrixRows();
+  const header=['Category / Scoring Item',...d.teams.map(t=>teamName(t))];
+  const rows=[];
+  for(const r of d.rows){
+    if(r.type==='category')rows.push([r.label,...d.teams.map(()=>'' )]);
+    else rows.push([r.label,...r.values.map(v=>Math.round(v||0))]);
+  }
+  return {header,rows};
+}
+
 function renderReports(){
   if(!window.reportsContent)return;
   const u=currentUser(),allowed=u&&(u.role==='coach'||u.role==='scoringMentor');
@@ -572,6 +613,12 @@ function renderReports(){
 }
 function renderSelectedReport(){
   if(!window.reportOutput)return;
+  const type=window.reportTypeSelect?reportTypeSelect.value:'individual';
+  const matrix=type==='matrix';
+  reportItemField.classList.toggle('hidden',matrix);
+  reportTeamField.classList.toggle('hidden',matrix);
+  reportSortField.classList.toggle('hidden',matrix);
+  if(matrix){renderMatrixReport();return}
   const item=state.items.find(i=>i.id===reportItemSelect.value)||reportableItems()[0];
   if(!item){reportOutput.innerHTML='<div class="notice">No individual-level scoring items are available yet. Reports currently support member fields, per-person items, and certifications.</div>';return}
   reportItemSelect.value=item.id;
@@ -580,18 +627,22 @@ function renderSelectedReport(){
   reportOutput.innerHTML=`<div class="eyebrow">${esc(cat?.name||'Report')}</div><h2 style="margin:4px 0">${esc(item.name)}</h2><div class="sub" style="margin-bottom:10px">${reportTeamSelect.value?esc(teamName(state.teams.find(t=>t.id===reportTeamSelect.value))):'All Sprint Teams'} · ${rows.length} member${rows.length===1?'':'s'}</div><div style="overflow-x:auto"><table class="report-table"><thead><tr><th>Name</th><th>Response / value</th><th>Sprint Team</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${displayValue(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')||'<tr><td colspan="3">No members found.</td></tr>'}</tbody></table></div>`;
 }
 function selectedReportData(){
+  if(window.reportTypeSelect&&reportTypeSelect.value==='matrix'){
+    const d=matrixReportData();return {matrix:true,item:{name:'scoring-matrix'},header:d.header,rows:d.rows};
+  }
   const item=state.items.find(i=>i.id===reportItemSelect.value)||reportableItems()[0];
   if(!item)return null;
   return {item,rows:reportRows(item,reportTeamSelect.value)};
 }
 async function copyReport(){
   const d=selectedReportData();if(!d)return;
-  const text=[['Name','Response / Value','Sprint Team'],...d.rows].map(r=>r.join('\t')).join('\n');
+  const rows=d.matrix?[d.header,...d.rows]:[['Name','Response / Value','Sprint Team'],...d.rows];
+  const text=rows.map(r=>r.join('\t')).join('\n');
   try{await navigator.clipboard.writeText(text);alert('Report copied to clipboard.')}catch(e){prompt('Copy this report:',text)}
 }
 function downloadReportCsv(){
   const d=selectedReportData();if(!d)return;
-  const rows=[['Name','Response / Value','Sprint Team'],...d.rows];
+  const rows=d.matrix?[d.header,...d.rows]:[['Name','Response / Value','Sprint Team'],...d.rows];
   const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'}),a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download=(d.item.name||'report').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.csv';a.click();URL.revokeObjectURL(a.href);
@@ -608,6 +659,6 @@ function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.
 function renderLifecycle(){frozenNotice.classList.toggle('hidden',!state.frozen);freezeBtn.textContent=state.frozen?'Sprint Frozen':'Freeze Sprint';freezeBtn.disabled=state.frozen}
 function renderAll(){renderUser();renderLeaderboard();renderWeighting();renderScoringOverview();renderTeams();renderRecordSelectors();renderSetup();renderReports();renderLifecycle()}
 function openModal(){modal.classList.add('open')}function closeModal(){modal.classList.remove('open')}
-teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
+teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportTypeSelect').onchange=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
 </script>
 </body></html>
