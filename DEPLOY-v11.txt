@@ -1,0 +1,59 @@
+PT Million Points v11
+
+GOAL
+Clean up the current Sprint 1 scoring workflow without migrating or reinterpreting existing scores.
+
+NEW IN V11
+1. Three scoring workflows
+   - Sprint Team records the result itself.
+   - Sprint Team marks Ready for Scoring; Scoring Mentor records the score.
+   - Scoring Mentor scores from external evidence.
+
+2. Existing Scoring Mentor items default safely to:
+   Mentor scores from external evidence.
+   Nothing in the current sprint is automatically changed to Ready-for-Scoring workflow.
+
+3. Student Record Progress
+   - New "Your Sprint Team Activities" view.
+   - Students can see activities even when a mentor records the score.
+   - Selected mentor-scored items can be marked Ready for Scoring.
+   - Ready state does NOT award points or alter an existing score.
+
+4. Coach / Scoring Mentor Record Progress
+   - Primary workflow is now item-first: "Score by Item."
+   - Choose Apollo, GoogleDoc, certifications, etc. once.
+   - See all Sprint Teams underneath that item.
+   - For Ready-for-Scoring items, teams waiting for review appear first.
+   - "Score this team" opens the exact Sprint Team + exact scoring item in the existing scoring form.
+   - The existing team+item scoring form remains below for specific corrections.
+
+5. Sprint Team member names are alphabetized consistently.
+
+DATA SAFETY
+- Existing results stay in the same state.results[teamId][itemId] records.
+- Ready-for-Scoring adds metadata only:
+    readyForScoring
+    readyAt
+    readyBy
+- It does not recalculate points and does not replace evidence.
+- No existing Scoring Mentor item changes workflow unless a Coach edits that scoring item.
+
+BEFORE DEPLOYING TO THE LIVE SPRINT
+Strongly recommended: duplicate the current Google Sheet as a Sprint 1 pre-v11 snapshot.
+
+DEPLOYMENT ORDER
+1. Apps Script: replace Code.gs with v11 Code.gs.
+2. Save > Deploy > Manage deployments > Edit > New version > Deploy.
+3. Keep the same /exec URL.
+4. GitHub Pages: replace index.html with v11 index.html.
+5. Keep the existing manifest / favicon / PyroPal icon files.
+6. Refresh ptmillionpoints.app.
+
+FIRST TEST
+- Pick ONE mentor-scored developmental item such as "Decision making is in document."
+- Edit it in Sprint Setup:
+  Who records = Scoring Mentor
+  How it reaches scoring = Sprint Team marks Ready for Scoring
+- Sign in as a Sprint Team Member and mark it Ready.
+- Sign in as a Scoring Mentor and confirm that team appears first under that item.
+- Score it and confirm existing point totals/evidence remain correct.
