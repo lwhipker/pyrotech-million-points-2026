@@ -90,11 +90,12 @@
   <div class="identity-bar"><span class="pill who" id="identityPill"></span><span class="pill" id="rolePill"></span><span class="pill" id="freezePill"></span><button class="ghost" id="refreshSharedBtn">Refresh shared data</button><button class="ghost" id="switchPersonBtn">Switch person</button></div>
   <div id="syncStatus" class="tiny" style="margin-top:9px">Connecting to shared Million Points…</div>
 </section>
-<nav class="nav"><button class="active" data-view="overview">Leaderboard</button><button data-view="teams">Sprint Teams</button><button data-view="record" id="recordTab">Record Progress</button><button data-view="scoring">Sprint Details</button><button data-view="reports" id="reportsTab">Reports</button><button data-view="setup" id="setupTab">Sprint Setup</button></nav>
+<nav class="nav"><button class="active" data-view="overview">Leaderboard</button><button data-view="matrix">Scoring Matrix</button><button data-view="teams" id="teamsTab">Sprint Teams</button><button data-view="record" id="recordTab">Record Progress</button><button data-view="scoring">Sprint Details</button><button data-view="reports" id="reportsTab">Reports</button><button data-view="setup" id="setupTab">Sprint Setup</button></nav>
 <main>
 <section id="overview" class="view active"><div class="section-title"><h2>Overall Million Points</h2><span class="tiny">Highest to lowest</span></div><div class="card"><table class="leaderboard"><thead><tr><th>#</th><th>Sprint Team</th><th>Million Points</th></tr></thead><tbody id="leaderboardRows"></tbody></table></div><div class="section-title"><h2>Category Weighting</h2><span class="tiny">How the sprint is designed</span></div><div id="categoryWeighting" class="stack"></div></section>
 <section id="scoring" class="view"><div class="section-title"><div><h2>Sprint Details</h2><span class="tiny">The big-picture scoring plan for this sprint</span></div><button class="secondary print-hide" id="printScoringBtn">Print / Save as PDF</button></div><div id="scoringOverview" class="stack"></div></section>
-<section id="teams" class="view"><div class="section-title"><h2>Sprint Team Details</h2><span class="tiny">Everyone can view; editing follows permissions</span></div><div id="teamDetails" class="stack"></div></section>
+<section id="matrix" class="view"><div class="section-title"><div><h2>Scoring Matrix</h2><span class="tiny">What each Sprint Team earned for each scoring item</span></div></div><div class="card" id="publicMatrixOutput"></div></section>
+<section id="teams" class="view"><div class="section-title"><h2>Sprint Team Details</h2><span class="tiny">Coach & Scoring Mentor detail view</span></div><div id="teamDetails" class="stack"></div></section>
 <section id="record" class="view">
 <div class="section-title"><h2>Record Progress</h2><span class="tiny" id="recordHint"></span></div>
 
@@ -151,9 +152,9 @@
   <div class="section-title"><h2>People & Sprint Teams</h2><span class="tiny">Add individually or paste team lists</span></div><div class="card"><div id="peopleSetup" class="setup-group"></div><div class="inline-actions"><button class="secondary" id="addPersonBtn">+ Add person</button><button class="secondary" id="bulkPeopleBtn">Paste Sprint Team lists</button></div></div>
   <div class="section-title"><h2>Sprint Teams</h2><span class="tiny">Temporary names change when a team submits its name</span></div><div class="card"><div id="teamSetup" class="stack"></div><button class="secondary" id="addTeamBtn">+ Add Sprint Team</button></div>
   <div class="section-title"><h2>Categories & scoring items</h2><span class="tiny">Category-first design</span></div><div class="card"><div class="notice">Create categories first, then scoring items inside them. Category totals update automatically so you can see the relative emphasis.</div><div id="setupCategories" class="stack" style="margin-top:10px"></div><button class="secondary" id="addCategoryBtn">+ Add category</button></div>
-  <div class="section-title"><h2>Sprint lifecycle</h2></div><div class="card"><p style="margin-top:0">Freeze the completed sprint so its teams, evidence and scores remain a historical record.</p><button class="primary" id="freezeBtn">Freeze Sprint</button><button class="ghost" id="resetBtn" style="margin-top:8px;width:100%">Reset prototype data</button></div>
+  <div class="section-title"><h2>Sprint lifecycle</h2></div><div class="card"><p style="margin-top:0">Close out a sprint safely before starting the next one.</p><div class="stack"><button class="secondary" id="snapshotBtn">1 · Download Sprint Snapshot</button><button class="primary" id="freezeBtn">2 · Freeze Sprint</button><button class="secondary" id="newSprintBtn">3 · Start New Sprint from This One</button></div><div class="tiny" style="margin-top:9px">Starting a new sprint keeps the people list, lets you choose which scoring items to keep, clears scores/evidence, clears Sprint Team assignments, and carries member-info fields such as GitHub/Onshape forward as profile data.</div><button class="ghost" id="resetBtn" style="margin-top:12px;width:100%">Reset prototype data</button></div>
 </div></section>
-</main><footer>v11.4 shared MVP · chunked shared-state storage · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
+</main><footer>v12 Sprint 2 transition · snapshot + selective carry-forward · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
 <div class="modal" id="modal"><div class="sheet"><button class="ghost close" onclick="closeModal()">Close</button><div id="modalContent"></div></div></div>
 <script>
 const KEY='millionPointsSharedMVP_local';
@@ -191,7 +192,7 @@ let apiUrl=API_URL;
 let syncTimer=null;
 
 function normalizeState(){
- state.sprint=state.sprint||structuredClone(initial.sprint);state.teams=state.teams||[];state.people=state.people||[];state.categories=state.categories||[];state.items=state.items||[];state.results=state.results||{};state.changeLog=state.changeLog||[];
+ state.sprint=state.sprint||structuredClone(initial.sprint);state.teams=state.teams||[];state.people=state.people||[];state.categories=state.categories||[];state.items=state.items||[];state.results=state.results||{};state.changeLog=state.changeLog||[];state.personProfiles=state.personProfiles||{};
  for(const i of state.items){
   if(i.rule==='memberField'&&!i.memberScoring)i.memberScoring='percent';
   if(i.rule==='memberField'&&!i.fieldType)i.fieldType='text';if(!Object.prototype.hasOwnProperty.call(i,'mentorGraceDays'))i.mentorGraceDays=1;if(!i.scoringFlow)i.scoringFlow='external';
@@ -324,7 +325,7 @@ function resultHasEvidence(r){
 function roleLabel(p){return p.role==='coach'?'Coach':p.role==='scoringMentor'?'Scoring Mentor':p.role==='guest'?'Guest · View Only':'Sprint Team Member'}
 function ruleLabel(i){return{completion:'Completion',perPerson:'Points per person',count:'Count × points',partial:'Partial credit',externalPercent:'External % × points',certifications:'New certifications',memberField:'Member information %',manual:'Manual positive award',manualAwards:'Judge / discretionary awards'}[i.rule]||i.rule}
 function itemDisplayPoints(i){if(i.rule==='certifications')return `${money(i.points)} each · uncapped`;if(i.rule==='perPerson')return `${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`;if(i.rule==='count')return `${money(i.points)} each${i.cap?' · max '+i.cap:' · uncapped'}`;if(i.rule==='memberField')return i.memberScoring==='perPersonBonus'?`${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`:`${money(i.points)} at 100% complete`;if(i.rule==='manual'||i.rule==='manualAwards')return 'uncapped';return money(i.points)}
-function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v11.3 shared test`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
+function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');teamsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v12 Sprint 2`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));teamsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
 function renderLeaderboard(){const sorted=[...state.teams].sort((a,b)=>teamTotal(b.id)-teamTotal(a.id));leaderboardRows.innerHTML=sorted.map((t,idx)=>`<tr><td class="rank">${idx+1}</td><td><button class="linkbtn" onclick="showTeam('${t.id}')">${esc(teamName(t))}</button></td><td><b>${teamTotal(t.id)?money(teamTotal(t.id)):'—'}</b></td></tr>`).join('')}
 function renderWeighting(){const baseTeam=state.teams[0];const rows=state.categories.map(c=>({c,p:catPossible(c.id,baseTeam)}));const cappedTotal=rows.reduce((s,x)=>s+x.p.total,0)||1;categoryWeighting.innerHTML=rows.map(({c,p})=>`<div class="card"><div class="meta"><b>${c.name}</b><span>${money(p.total)}${p.uncapped?' + uncapped':''}</span></div><div class="weightbar"><span style="width:${Math.min(100,p.total/cappedTotal*100)}%"></span></div><div class="tiny">${(p.total/cappedTotal*100).toFixed(0)}% of currently capped points${p.uncapped?' · plus uncapped opportunities':''}</div></div>`).join('')}
 function evidenceSummary(team,item){const r=result(team.id,item.id);if(item.rule==='completion')return r.text?(isUrl(r.text)?'Link submitted':r.text):'Not yet submitted';if(item.rule==='perPerson')return `${(r.people||[]).length}/${r.rosterSize||teamMembers(team.id).length} members`;if(item.rule==='count')return `${r.count||0} counted`;if(item.rule==='partial'||item.rule==='externalPercent')return `${r.percent||0}%`;if(item.rule==='certifications')return `${(r.entries||[]).length} certifications`;if(item.rule==='memberField'){const values=r.values||{};const done=teamMembers(team.id).filter(m=>memberFieldComplete(item,values[m.name])).length;return `${done}/${r.rosterSize||teamMembers(team.id).length} members`};if(item.rule==='manual')return r.note||'No award yet';if(item.rule==='manualAwards')return `${(r.awards||[]).length} award${(r.awards||[]).length===1?'':'s'}`;return ''}
@@ -516,7 +517,7 @@ function renderSetup(){const u=currentUser();const isCoach=u&&u.role==='coach';s
  setupCategories.innerHTML=state.categories.map(c=>{const p=catPossible(c.id,state.teams[0]);const items=state.items.filter(i=>i.categoryId===c.id);return `<div class="card category-card"><div class="category-head"><div><div class="category-title">${esc(c.name)}</div><div class="tiny">${esc(c.description||'')}</div><button class="linkbtn" onclick="editCategory('${c.id}')" style="margin-top:6px">Edit category</button></div><div class="category-total">${money(p.total)}${p.uncapped?' + uncapped':''}<div class="tiny">possible per Sprint Team</div></div></div><div class="category-body">${items.map(i=>`<div class="setup-item-row"><div class="setup-item-main"><div class="item-title">${i.name}</div><div class="rule">${ruleLabel(i)} · Who records: ${recorderName(i.recorder)}${isTeamReadyItem(i)?' · Team marks Ready for Scoring':i.recorder==='mentor'?' · External evidence':''}${i.dueAt?' · '+deadlineLabel(i):''}</div></div><div class="setup-item-side"><div class="points">${itemDisplayPoints(i)}</div><div class="small-actions"><span class="order-buttons"><button class="ghost" title="Move up" onclick="moveItem('${i.id}',-1)">↑</button><button class="ghost" title="Move down" onclick="moveItem('${i.id}',1)">↓</button></span><button class="linkbtn" onclick="editItem('${i.id}')">Edit</button><button class="linkbtn" onclick="duplicateItem('${i.id}')">Duplicate</button></div></div></div>`).join('')||'<div class="tiny" style="padding:12px 0">No items yet.</div>'}<button class="secondary" onclick="addItem('${c.id}')" style="margin:8px 0 4px">+ Add item</button></div></div>`}).join('')}
 function saveSprint(){state.sprint={frcTeam:setupFrcTeam.value.trim()||'FRC Team',name:setupSprintName.value.trim()||'Sprint',start:setupStart.value,end:setupEnd.value,infoUrl:setupInfoUrl.value.trim(),repoUrl:setupRepoUrl.value.trim()};save()}
 function changeRole(id,role){const p=state.people.find(x=>x.id===id);if(!p)return;p.role=role;save()}
-function changeTeam(id,teamId){const p=state.people.find(x=>x.id===id);if(!p)return;p.teamId=teamId;save()}
+function changeTeam(id,teamId){const p=state.people.find(x=>x.id===id);if(!p)return;p.teamId=teamId;rebuildCarryProfileResults();save()}
 function removePerson(id){if(!confirm('Remove this person from the prototype?'))return;state.people=state.people.filter(p=>p.id!==id);save()}
 function addPerson(){modalContent.innerHTML=`<div class="eyebrow">People & roles</div><h3>Add person</h3><div class="field"><label>Name</label><input id="newPersonName" maxlength="80" placeholder="Person name"></div><div class="form-row"><div class="field"><label>Role</label><select id="newPersonRole"><option value="member">Sprint Team Member</option><option value="scoringMentor">Scoring Mentor</option><option value="coach">Coach</option></select></div><div class="field"><label>Sprint Team</label><select id="newPersonTeam"><option value="">No Sprint Team yet</option>${sortedTeams().map(t=>`<option value="${t.id}">${esc(teamName(t))}</option>`).join('')}</select></div></div><button class="primary" id="confirmAddPerson">Add person</button>`;openModal();$('newPersonName').focus();$('confirmAddPerson').onclick=()=>{const name=$('newPersonName').value.trim();if(!name)return alert('Enter a person name.');state.people.push({id:'p'+Date.now(),name,role:$('newPersonRole').value,teamId:$('newPersonTeam').value});closeModal();save()}}
 function bulkPeople(){const example=`Sprint Team 1\nAarna\nRitvik\nMonica G\n\nSprint Team 2\nIon\nDiya\nKalyan\nPuneet`;modalContent.innerHTML=`<div class="eyebrow">Fast setup</div><h3>Paste Sprint Team lists</h3><p class="sub">Use a Sprint Team heading, then one person per line. Existing names are reassigned rather than duplicated when possible.</p><div class="bulk-example">${example}</div><div class="field"><label>Paste lists</label><textarea id="bulkText" maxlength="10000" style="min-height:220px"></textarea></div><button class="primary" id="bulkImportBtn">Import people + assignments</button>`;openModal();$('bulkText').focus();$('bulkImportBtn').onclick=()=>{const lines=$('bulkText').value.split(/\r?\n/).map(x=>x.trim());let currentTeam=null;for(const line of lines){if(!line)continue;const team=state.teams.find(t=>t.slot.toLowerCase()===line.toLowerCase()||teamName(t).toLowerCase()===line.toLowerCase());if(team){currentTeam=team.id;continue}if(!currentTeam)continue;let p=state.people.find(x=>x.name.toLowerCase()===line.toLowerCase());if(p)p.teamId=currentTeam;else state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),name:line,role:'member',teamId:currentTeam})}closeModal();save()}}
@@ -590,6 +591,11 @@ function renderMatrixReport(){
   const d=matrixRows();
   reportOutput.innerHTML=`<div class="eyebrow">Sprint Report</div><h2 style="margin:4px 0">Scoring Matrix</h2><div class="sub" style="margin-bottom:10px">Points by scoring item and Sprint Team</div><div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Category / Scoring Item</th>${d.teams.map(t=>`<th>${esc(teamName(t))}</th>`).join('')}</tr></thead><tbody>${d.rows.map(r=>{if(r.type==='category')return `<tr class="matrix-category"><td colspan="${d.teams.length+1}">${esc(r.label)}</td></tr>`;const cls=r.type==='subtotal'?'matrix-subtotal':r.type==='total'?'matrix-total':'';return `<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map(v=>`<td>${money(v)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>`;
 }
+function renderPublicMatrix(){
+  if(!window.publicMatrixOutput)return;
+  const d=matrixRows();
+  publicMatrixOutput.innerHTML=`<div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Category / Scoring Item</th>${d.teams.map(t=>`<th>${esc(teamName(t))}</th>`).join('')}</tr></thead><tbody>${d.rows.map(r=>{if(r.type==='category')return `<tr class="matrix-category"><td colspan="${d.teams.length+1}">${esc(r.label)}</td></tr>`;const cls=r.type==='subtotal'?'matrix-subtotal':r.type==='total'?'matrix-total':'';return `<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map(v=>`<td>${money(v)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>`;
+}
 function matrixReportData(){
   const d=matrixRows();
   const header=['Category / Scoring Item',...d.teams.map(t=>teamName(t))];
@@ -655,10 +661,101 @@ function printReport(){
   setTimeout(()=>document.body.classList.remove('print-report'),1500);
 }
 
+
+function safeFilePart(v){return String(v||'sprint').trim().replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'sprint'}
+function downloadSprintSnapshot(){
+  const payload={exportedAt:new Date().toISOString(),appVersion:'v12',state};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=safeFilePart(state.sprint.name)+'-snapshot.json';a.click();URL.revokeObjectURL(a.href);
+  setSyncStatus('Sprint snapshot downloaded ✓','ok');
+}
+function profileKey(item){return String(item.fieldLabel||item.name||'field').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_')}
+function captureMemberProfiles(){
+  const profiles=structuredClone(state.personProfiles||{});
+  for(const item of state.items.filter(i=>i.rule==='memberField')){
+    const key=profileKey(item);
+    for(const p of state.people){
+      const teamId=p.teamId;if(!teamId)continue;
+      const value=state.results?.[teamId]?.[item.id]?.values?.[p.name];
+      if(String(value||'').trim()){profiles[p.id]=profiles[p.id]||{};profiles[p.id][key]=value}
+    }
+  }
+  return profiles;
+}
+function rebuildCarryProfileResults(){
+  for(const t of state.teams){
+    state.results[t.id]=state.results[t.id]||{};
+    for(const item of state.items.filter(i=>i.rule==='memberField'&&i.carryProfile)){
+      const values={};
+      for(const p of teamMembers(t.id)){
+        const v=state.personProfiles?.[p.id]?.[profileKey(item)];
+        if(String(v||'').trim())values[p.name]=v;
+      }
+      const rosterSize=teamMembers(t.id).length;
+      const done=teamMembers(t.id).filter(m=>memberFieldComplete(item,values[m.name])).length;
+      const points=item.memberScoring==='perPersonBonus'
+        ? done*(Number(item.points)||0)+(done===rosterSize&&done>0?(Number(item.bonus)||0):0)
+        : (rosterSize?done/rosterSize*(Number(item.points)||0):0);
+      state.results[t.id][item.id]={values,rosterSize,points};
+    }
+  }
+}
+function openNewSprintWizard(){
+  if(!state.frozen){alert('Freeze Sprint 1 first. Download a snapshot before freezing so you have an independent backup.');return}
+  const itemRows=state.categories.map(c=>{
+    const items=state.items.filter(i=>i.categoryId===c.id);
+    return `<div class="mutedbox"><b>${esc(c.name)}</b><div class="stack" style="margin-top:7px">${items.map(i=>`<label class="check"><input type="checkbox" class="carryItem" value="${i.id}" checked> <span><b>${esc(i.name)}</b><span class="tiny">${i.rule==='memberField'?' · member info will carry forward':''}</span></span></label>`).join('')}</div></div>`;
+  }).join('');
+  modalContent.innerHTML=`<div class="eyebrow">Sprint transition</div><h3>Start a new sprint</h3><div class="notice">Sprint 1 stays safe in the snapshot you downloaded. Creating the new sprint will replace the active shared sprint with a clean Sprint 2 state.</div><div class="form-row"><div class="field"><label>New sprint name</label><input id="nextSprintName" value="Sprint 2"></div><div class="field"><label>Number of Sprint Teams</label><input id="nextTeamCount" type="number" min="1" max="10" value="${Math.max(1,state.teams.length||3)}"></div></div><div class="form-row"><div class="field"><label>Start date</label><input id="nextSprintStart" type="date" value="2026-10-22"></div><div class="field"><label>End date</label><input id="nextSprintEnd" type="date"></div></div><div class="field"><label>Choose what to carry forward</label><div class="tiny">Checked items keep their wording, points, calculation and recording workflow. Due dates and all scores/evidence are cleared.</div></div><div class="stack">${itemRows}</div><button class="primary" id="createNextSprintBtn" style="margin-top:12px">Create New Sprint</button>`;
+  openModal();
+  $('createNextSprintBtn').onclick=createNextSprint;
+}
+async function createNextSprint(){
+  const selected=new Set([...document.querySelectorAll('.carryItem:checked')].map(x=>x.value));
+  if(!selected.size){alert('Keep at least one scoring item.');return}
+  const name=$('nextSprintName').value.trim()||'Sprint 2';
+  const start=$('nextSprintStart').value,end=$('nextSprintEnd').value;
+  const teamCount=Math.max(1,Math.min(10,+$('nextTeamCount').value||3));
+  if(!confirm('Create '+name+' now? Sprint 1 scores will be removed from the ACTIVE app, so make sure you downloaded the Sprint 1 snapshot first.'))return;
+
+  const previous=structuredClone(state);
+  const profiles=captureMemberProfiles();
+  const keptItems=state.items.filter(i=>selected.has(i.id)).map(i=>({...i,dueAt:'',mentorGraceDays:i.mentorGraceDays??1,carryProfile:i.rule==='memberField'}));
+  const keptCategoryIds=new Set(keptItems.map(i=>i.categoryId));
+  const keptCategories=state.categories.filter(c=>keptCategoryIds.has(c.id));
+  const colors=['#ff7a1a','#67b0ff','#43d17b','#ffd166','#b18cff','#ff8aa1','#70d6c7','#f7a35c','#8fd16a','#8da0ff'];
+
+  state={
+    frozen:false,
+    sprint:{frcTeam:previous.sprint.frcTeam||'PyroTech 3459',name,start,end,infoUrl:'',repoUrl:previous.sprint.repoUrl||''},
+    teams:Array.from({length:teamCount},(_,idx)=>({id:'t'+(idx+1),slot:'Sprint Team '+(idx+1),color:colors[idx%colors.length]})),
+    people:previous.people.map(p=>({...p,teamId:''})),
+    categories:keptCategories,
+    items:keptItems,
+    results:{},
+    personProfiles:profiles,
+    changeLog:[{id:'transition-'+Date.now(),at:new Date().toISOString(),actor:currentUser()?.name||'Coach',action:'newSprint',summary:'Created '+name+' from '+previous.sprint.name}]
+  };
+  normalizeState();
+  rebuildCarryProfileResults();
+  localStorage.setItem(KEY,JSON.stringify(state));
+  renderAll();
+  setSyncStatus('Creating shared '+name+'…');
+  const ok=await pushShared();
+  if(!ok){
+    state=previous;normalizeState();localStorage.setItem(KEY,JSON.stringify(state));renderAll();
+    alert('The new sprint was NOT created because the shared save failed. Sprint 1 has been restored in this browser.');
+    return;
+  }
+  closeModal();
+  setSyncStatus(name+' created ✓ Assign the new Sprint Teams in Sprint Setup.','ok');
+  showView('setup');
+}
+
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));document.getElementById(id)?.classList.add('active')}
 function renderLifecycle(){frozenNotice.classList.toggle('hidden',!state.frozen);freezeBtn.textContent=state.frozen?'Sprint Frozen':'Freeze Sprint';freezeBtn.disabled=state.frozen}
-function renderAll(){renderUser();renderLeaderboard();renderWeighting();renderScoringOverview();renderTeams();renderRecordSelectors();renderSetup();renderReports();renderLifecycle()}
+function renderAll(){renderUser();renderLeaderboard();renderWeighting();renderScoringOverview();renderTeams();renderRecordSelectors();renderSetup();renderReports();renderPublicMatrix();renderLifecycle()}
 function openModal(){modal.classList.add('open')}function closeModal(){modal.classList.remove('open')}
-teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportTypeSelect').onchange=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
+teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;$('snapshotBtn').onclick=downloadSprintSnapshot;$('newSprintBtn').onclick=openNewSprintWizard;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportTypeSelect').onchange=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
 </script>
 </body></html>
