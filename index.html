@@ -152,9 +152,9 @@
   <div class="section-title"><h2>People & Sprint Teams</h2><span class="tiny">Add individually or paste team lists</span></div><div class="card"><div id="peopleSetup" class="setup-group"></div><div class="inline-actions"><button class="secondary" id="addPersonBtn">+ Add person</button><button class="secondary" id="bulkPeopleBtn">Paste Sprint Team lists</button></div></div>
   <div class="section-title"><h2>Sprint Teams</h2><span class="tiny">Temporary names change when a team submits its name</span></div><div class="card"><div id="teamSetup" class="stack"></div><button class="secondary" id="addTeamBtn">+ Add Sprint Team</button></div>
   <div class="section-title"><h2>Categories & scoring items</h2><span class="tiny">Category-first design</span></div><div class="card"><div class="notice">Create categories first, then scoring items inside them. Category totals update automatically so you can see the relative emphasis.</div><div id="setupCategories" class="stack" style="margin-top:10px"></div><button class="secondary" id="addCategoryBtn">+ Add category</button></div>
-  <div class="section-title"><h2>Sprint lifecycle</h2></div><div class="card"><p style="margin-top:0">Close out a sprint safely before starting the next one.</p><div class="stack"><button class="secondary" id="snapshotBtn">1 · Download Sprint Snapshot</button><button class="primary" id="freezeBtn">2 · Freeze Sprint</button><button class="secondary" id="newSprintBtn">3 · Start New Sprint from This One</button></div><div class="tiny" style="margin-top:9px">Starting a new sprint keeps the people list, lets you choose which scoring items to keep, clears scores/evidence, clears Sprint Team assignments, and carries member-info fields such as GitHub/Onshape forward as profile data.</div><button class="ghost" id="resetBtn" style="margin-top:12px;width:100%">Reset prototype data</button></div>
+  <div class="section-title"><h2>Sprint lifecycle</h2></div><div class="card"><p style="margin-top:0">Close out a sprint safely before starting the next one.</p><div class="stack"><button class="secondary" id="snapshotBtn">1 · Download Sprint Snapshot</button><button class="secondary" id="archiveBtn">2 · Write Historical Tables</button><button class="primary" id="freezeBtn">3 · Freeze Sprint</button><button class="secondary" id="newSprintBtn">4 · Start New Sprint from This One</button></div><div class="tiny" style="margin-top:9px">Historical Tables writes readable spreadsheet tabs for this sprint: Summary, Teams, Scoring Items, Scores, Member Info, Certifications, and Change Log. Re-running it refreshes this sprint instead of duplicating it.</div><div class="tiny" style="margin-top:7px">Starting a new sprint keeps the people list, lets you choose which scoring items to keep, clears scores/evidence, clears Sprint Team assignments, and carries member-info fields such as GitHub/Onshape forward as profile data.</div><button class="ghost" id="resetBtn" style="margin-top:12px;width:100%">Reset prototype data</button></div>
 </div></section>
-</main><footer>v12 Sprint 2 transition · snapshot + selective carry-forward · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
+</main><footer>v12.1 Sprint transition · readable historical tables · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
 <div class="modal" id="modal"><div class="sheet"><button class="ghost close" onclick="closeModal()">Close</button><div id="modalContent"></div></div></div>
 <script>
 const KEY='millionPointsSharedMVP_local';
@@ -665,6 +665,26 @@ function printReport(){
 }
 
 
+async function writeHistoricalTables(){
+  if(!apiUrl){setSyncStatus('Not connected — historical tables were not written.','warn');return false}
+  try{
+    setSyncStatus('Writing historical spreadsheet tables…');
+    const res=await fetch(apiUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'archiveHistoricalTables',recordedBy:(currentUser()?.name||'Unknown')})});
+    const data=await parseApiResponse(res);
+    if(!data.ok)throw new Error(data.error||'Historical archive failed');
+    if(data.state){state=data.state;normalizeState();localStorage.setItem(KEY,JSON.stringify(state));renderAll()}
+    const counts=data.archive?.counts||{};
+    setSyncStatus('Historical tables written ✓','ok');
+    alert('Historical tables written to the Google Sheet.\n\nTeams: '+(counts.teams||0)+' rows\nScoring items: '+(counts.items||0)+' rows\nScores: '+(counts.scores||0)+' rows\nMember info: '+(counts.memberInfo||0)+' rows\nCertifications: '+(counts.certifications||0)+' rows');
+    return true;
+  }catch(err){
+    console.error(err);
+    setSyncStatus('Historical table export failed — '+err.message,'warn');
+    alert('Historical tables were not written. '+err.message);
+    return false;
+  }
+}
+
 function safeFilePart(v){return String(v||'sprint').trim().replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'sprint'}
 function downloadSprintSnapshot(){
   const payload={exportedAt:new Date().toISOString(),appVersion:'v12',state};
@@ -759,6 +779,6 @@ function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.
 function renderLifecycle(){frozenNotice.classList.toggle('hidden',!state.frozen);freezeBtn.textContent=state.frozen?'Sprint Frozen':'Freeze Sprint';freezeBtn.disabled=state.frozen}
 function renderAll(){renderUser();renderLeaderboard();renderWeighting();renderScoringOverview();renderTeams();renderRecordSelectors();renderSetup();renderReports();renderPublicMatrix();renderLifecycle()}
 function openModal(){modal.classList.add('open')}function closeModal(){modal.classList.remove('open')}
-teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;$('snapshotBtn').onclick=downloadSprintSnapshot;$('newSprintBtn').onclick=openNewSprintWizard;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportTypeSelect').onchange=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
+teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;$('snapshotBtn').onclick=downloadSprintSnapshot;$('archiveBtn').onclick=writeHistoricalTables;$('newSprintBtn').onclick=openNewSprintWizard;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportTypeSelect').onchange=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
 </script>
 </body></html>
