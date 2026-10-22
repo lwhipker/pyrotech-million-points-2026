@@ -55,6 +55,11 @@
 .mentor-item-meta{line-height:1.35}
 .mentor-item-row .task-action button{padding:8px 12px;font-size:13px}
 .recorder-badge{display:inline-block;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;background:rgba(255,255,255,.07);margin-right:5px}
+.readonly-action{display:inline-block;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.055);color:var(--muted);font-size:12px;font-weight:800;white-space:nowrap}
+.student-category{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.015)}
+.student-category:first-child{margin-top:0}
+.student-category-head{padding:10px 13px;background:rgba(255,255,255,.045);font-weight:850;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.student-category-items{padding:0 12px}
 .activity-row,.mentor-item-row,.workspace-team-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .activity-row:first-child,.mentor-item-row:first-child,.workspace-team-row:first-child{border-top:0}
 .activity-title,.mentor-item-title{font-weight:800}
@@ -96,7 +101,7 @@
 <div class="section-title"><h2>Record Progress</h2><span class="tiny" id="recordHint"></span></div>
 
 <div class="card hidden" id="studentActivityPanel" style="margin-bottom:12px">
-  <div class="section-title" style="margin-bottom:8px"><div><h3 style="margin:0">Your Sprint Team Activities</h3><span class="tiny">What your team can do, submit, or get ready for mentor scoring.</span></div></div>
+  <div class="section-title" style="margin-bottom:8px"><div><h3 style="margin:0">Your Sprint Team Activities</h3><span class="tiny">All sprint scoring items, grouped by category. Each row shows who is responsible for recording it.</span></div></div>
   <div id="studentActivityList"></div>
 </div>
 
@@ -201,7 +206,7 @@
     </details>
   </div>
 </section>
-</main><footer>v16 Record Progress · all items + category layout · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
+</main><footer>v17 Student Record Progress · category layout + recorder actions · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
 <div class="modal" id="modal"><div class="sheet"><button class="ghost close" onclick="closeModal()">Close</button><div id="modalContent"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
@@ -373,7 +378,7 @@ function resultHasEvidence(r){
 function roleLabel(p){return p.role==='coach'?'Coach':p.role==='scoringMentor'?'Scoring Mentor':p.role==='guest'?'Guest · View Only':'Sprint Team Member'}
 function ruleLabel(i){return{completion:'Completion',perPerson:'Points per person',count:'Count × points',partial:'Partial credit',externalPercent:'External % × points',certifications:'New certifications',memberField:'Member information %',manual:'Manual positive award',manualAwards:'Judge / discretionary awards'}[i.rule]||i.rule}
 function itemDisplayPoints(i){if(i.rule==='certifications')return `${money(i.points)} each · uncapped`;if(i.rule==='perPerson')return `${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`;if(i.rule==='count')return `${money(i.points)} each${i.cap?' · max '+i.cap:' · uncapped'}`;if(i.rule==='memberField')return i.memberScoring==='perPersonBonus'?`${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`:`${money(i.points)} at 100% complete`;if(i.rule==='manualAwards'&&i.inputMethod==='gpNominationPaste')return `${money(i.gpNominatePoints||0)} nominate · ${money(i.gpReceivePoints||0)} nominated`;if(i.rule==='manual'||i.rule==='manualAwards')return 'uncapped';return money(i.points)}
-function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v16 Sprint 2`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
+function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v17 Sprint 2`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
 function renderLeaderboard(){const sorted=[...state.teams].sort((a,b)=>teamTotal(b.id)-teamTotal(a.id));leaderboardRows.innerHTML=sorted.map((t,idx)=>`<tr><td class="rank">${idx+1}</td><td><button class="linkbtn" onclick="showTeam('${t.id}')">${esc(teamName(t))}</button></td><td><b>${teamTotal(t.id)?money(teamTotal(t.id)):'—'}</b></td></tr>`).join('')}
 function renderWeighting(){const baseTeam=state.teams[0];const rows=state.categories.map(c=>({c,p:catPossible(c.id,baseTeam)}));const cappedTotal=rows.reduce((s,x)=>s+x.p.total,0)||1;categoryWeighting.innerHTML=rows.map(({c,p})=>`<div class="card"><div class="meta"><b>${c.name}</b><span>${money(p.total)}${p.uncapped?' + uncapped':''}</span></div><div class="weightbar"><span style="width:${Math.min(100,p.total/cappedTotal*100)}%"></span></div><div class="tiny">${(p.total/cappedTotal*100).toFixed(0)}% of currently capped points${p.uncapped?' · plus uncapped opportunities':''}</div></div>`).join('')}
 function evidenceSummary(team,item){const r=result(team.id,item.id);if(item.rule==='completion')return r.text?(isUrl(r.text)?'Link submitted':r.text):'Not yet submitted';if(item.rule==='perPerson')return `${(r.people||[]).length}/${r.rosterSize||teamMembers(team.id).length} members`;if(item.rule==='count')return `${r.count||0} counted`;if(item.rule==='partial'||item.rule==='externalPercent')return `${r.percent||0}%`;if(item.rule==='certifications')return `${(r.entries||[]).length} certifications`;if(item.rule==='memberField'){const values=r.values||{};const done=teamMembers(team.id).filter(m=>memberFieldComplete(item,values[m.name])).length;return `${done}/${r.rosterSize||teamMembers(team.id).length} members`};if(item.rule==='manual')return r.note||'No award yet';if(item.rule==='manualAwards')return `${(r.awards||[]).length} award${(r.awards||[]).length===1?'':'s'}`;return ''}
@@ -410,20 +415,37 @@ function renderStudentActivities(){
   studentActivityPanel.classList.remove('hidden');
   const team=state.teams.find(t=>t.id===u.teamId);
   if(!team){studentActivityList.innerHTML='<div class="notice">You are not assigned to a Sprint Team.</div>';return}
-  const items=state.categories.flatMap(c=>state.items.filter(i=>i.categoryId===c.id));
-  studentActivityList.innerHTML=items.map(i=>{
-    const s=studentItemStatus(team,i),r=result(team.id,i.id);
-    let action='';
-    if(i.recorder==='team'){
-      action=canRecord(i,team.id)?`<button class="secondary" onclick="openSpecificScore('${team.id}','${i.id}')">Open</button>`:'';
-    }else if(i.rule==='manualAwards'&&i.inputMethod==='gpNominationPaste'&&i.formUrl){
-      action=`<a class="secondary" href="${esc(i.formUrl)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">GP nomination form</a>`;
-    }else if(isTeamReadyItem(i)&&studentWindowOpen(i)&&!state.frozen){
-      const pending=readyNeedsScoring(r);
-      if(pending)action=`<button class="secondary" onclick="setReadyForScoring('${team.id}','${i.id}',false)">Undo Ready</button>`;
-      else action=`<button class="secondary" onclick="setReadyForScoring('${team.id}','${i.id}',true)">Ready for Scoring</button>`;
-    }
-    return `<div class="activity-row"><div><div class="activity-title">${esc(i.name)} <span class="status-pill ${s.cls}">${esc(s.label)}</span></div><div class="activity-meta">${esc(i.instructions||'')}${i.dueAt?' · '+esc(deadlineLabel(i)):''}</div></div><div class="task-action">${action}</div></div>`;
+
+  const groups=state.categories.map(cat=>({
+    cat,
+    items:state.items.filter(i=>i.categoryId===cat.id)
+  })).filter(g=>g.items.length);
+
+  studentActivityList.innerHTML=groups.map(g=>{
+    const rows=g.items.map(i=>{
+      const s=studentItemStatus(team,i),r=result(team.id,i.id);
+      let action='';
+      if(i.recorder==='team'){
+        action=canRecord(i,team.id)
+          ?`<button class="secondary" onclick="openSpecificScore('${team.id}','${i.id}')">Open</button>`
+          :'<span class="readonly-action">Team records this</span>';
+      }else if(i.rule==='manualAwards'&&i.inputMethod==='gpNominationPaste'&&i.formUrl){
+        action=`<a class="secondary" href="${esc(i.formUrl)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">GP nomination form</a>`;
+      }else if(isTeamReadyItem(i)&&studentWindowOpen(i)&&!state.frozen){
+        const pending=readyNeedsScoring(r);
+        action=pending
+          ?`<button class="secondary" onclick="setReadyForScoring('${team.id}','${i.id}',false)">Undo Ready</button>`
+          :`<button class="secondary" onclick="setReadyForScoring('${team.id}','${i.id}',true)">Ready for Scoring</button>`;
+      }else if(i.recorder==='mentor'){
+        action=`<span class="readonly-action">${resultHasEvidence(r)?'Mentor scored':'Mentor scores this'}</span>`;
+      }else if(i.recorder==='coach'){
+        action=`<span class="readonly-action">${resultHasEvidence(r)?'Coach scored':'Coach scores this'}</span>`;
+      }
+
+      return `<div class="activity-row"><div><div class="activity-title">${esc(i.name)} <span class="status-pill ${s.cls}">${esc(s.label)}</span></div><div class="activity-meta">${esc(i.instructions||'')}${i.dueAt?' · '+esc(deadlineLabel(i)):''}</div></div><div class="task-action">${action}</div></div>`;
+    }).join('');
+
+    return `<div class="student-category"><div class="student-category-head"><span>${esc(g.cat.name)}</span><span class="tiny">${g.items.length} item${g.items.length===1?'':'s'}</span></div><div class="student-category-items">${rows}</div></div>`;
   }).join('');
 }
 function mentorScoringItems(){
