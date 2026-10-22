@@ -40,6 +40,7 @@
   .print-hide{display:none!important}
 }
 
+.setup-section{padding:0;overflow:hidden}.setup-section>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:16px}.setup-section>summary::-webkit-details-marker{display:none}.setup-section>summary:after{content:"+";font-size:22px;font-weight:800;color:var(--accent2)}.setup-section[open]>summary:after{content:"−"}.setup-section>summary span{display:flex;flex-direction:column;gap:2px}.setup-section-body{padding:0 16px 16px;border-top:1px solid var(--line)}
 .task-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .task-row:first-child{border-top:0}.task-title{font-weight:800}.task-meta{font-size:12px;color:var(--muted);margin-top:3px}.due-badge{display:inline-block;padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.07);font-size:11px;margin-left:5px}.task-row button{white-space:nowrap}
 .log-row{padding:10px 0;border-top:1px solid var(--line)}.log-row:first-child{border-top:0}.log-time{font-size:11px;color:var(--muted)}
@@ -76,7 +77,7 @@
   <div class="identity-bar"><span class="pill who" id="identityPill"></span><span class="pill" id="rolePill"></span><span class="pill" id="freezePill"></span><button class="ghost" id="refreshSharedBtn">Refresh shared data</button><button class="ghost" id="switchPersonBtn">Switch person</button></div>
   <div id="syncStatus" class="tiny" style="margin-top:9px">Connecting to shared Million Points…</div>
 </section>
-<nav class="nav"><button class="active" data-view="overview">Leaderboard</button><button data-view="matrix">Scoring Matrix</button><button data-view="teams" id="teamsTab">Sprint Teams</button><button data-view="record" id="recordTab">Record Progress</button><button data-view="scoring">Sprint Details</button><button data-view="reports" id="reportsTab">Reports</button><button data-view="setup" id="setupTab">Sprint Setup</button></nav>
+<nav class="nav"><button class="active" data-view="overview">Leaderboard</button><button data-view="matrix">Scoring Matrix</button><button data-view="record" id="recordTab">Record Progress</button><button data-view="reports" id="reportsTab">Reports</button><button data-view="setup" id="setupTab">Sprint Setup</button></nav>
 <main>
 <section id="overview" class="view active"><div class="section-title"><h2>Overall Million Points</h2><span class="tiny">Highest to lowest</span></div><div class="card"><table class="leaderboard"><thead><tr><th>#</th><th>Sprint Team</th><th>Million Points</th></tr></thead><tbody id="leaderboardRows"></tbody></table></div><div class="section-title"><h2>Category Weighting</h2><span class="tiny">How the sprint is designed</span></div><div id="categoryWeighting" class="stack"></div></section>
 <section id="scoring" class="view"><div class="section-title"><div><h2>Sprint Details</h2><span class="tiny">The big-picture scoring plan for this sprint</span></div><button class="secondary print-hide" id="printScoringBtn">Print / Save as PDF</button></div><div id="scoringOverview" class="stack"></div></section>
@@ -101,13 +102,15 @@
 
 <div id="frozenNotice" class="notice hidden">This sprint is frozen. Historical evidence can be viewed but not changed.</div>
 
-<div class="card" id="specificScoreCard">
-  <div class="section-title" style="margin-bottom:8px"><div><h3 style="margin:0">Score a Specific Sprint Team</h3><span class="tiny">Use this for one-off scoring, corrections, or items outside the main workflow.</span></div></div>
-  <div class="form-row"><div class="field"><label>Sprint Team</label><select id="teamSelect"></select></div><div class="field"><label>Scoring item</label><select id="itemSelect"></select></div></div>
-  <div id="dynamicInput"></div>
-  <button class="primary" id="saveBtn">Save progress + calculate points</button>
-  <div id="saveMsg" class="notice success hidden" style="margin-top:10px"></div>
-</div>
+<details class="card setup-section" id="specificScoreCard">
+  <summary><span><b>Specific team scoring / corrections</b><span class="tiny">Fallback for one-off corrections or unusual items</span></span></summary>
+  <div class="setup-section-body">
+    <div class="form-row"><div class="field"><label>Sprint Team</label><select id="teamSelect"></select></div><div class="field"><label>Scoring item</label><select id="itemSelect"></select></div></div>
+    <div id="dynamicInput"></div>
+    <button class="primary" id="saveBtn">Save progress + calculate points</button>
+    <div id="saveMsg" class="notice success hidden" style="margin-top:10px"></div>
+  </div>
+</details>
 </section>
 
 <section id="reports" class="view">
@@ -132,15 +135,64 @@
   </div>
 </section>
 
-<section id="setup" class="view"><div class="section-title"><h2>Sprint Setup</h2><span class="tiny">Coach only</span></div><div id="setupDenied" class="notice hidden">Only the Coach can design the sprint. Scoring Mentors can record/correct progress but cannot change the sprint structure.</div><div id="setupContent">
-  <div class="card"><div class="eyebrow">1 · Sprint</div><div class="form-row"><div class="field"><label>Sprint name</label><input id="setupSprintName" maxlength="100"></div><div class="field"><label>FRC Team</label><input id="setupFrcTeam" maxlength="100"></div></div><div class="form-row"><div class="field"><label>Start date</label><input id="setupStart" type="date"></div><div class="field"><label>End date</label><input id="setupEnd" type="date"></div></div><div class="field"><label>Sprint information URL</label><input id="setupInfoUrl" maxlength="500" placeholder="Google Doc or other sprint description"></div><div class="field"><label>GitHub repository URL (optional)</label><input id="setupRepoUrl" maxlength="500" placeholder="Repository used for this sprint"></div><button class="secondary" id="saveSprintBtn">Save sprint details</button></div>
-  <div class="section-title"><h2>Roles</h2><span class="tiny">Access roles are separate from Sprint Team membership</span></div><div id="roleLists" class="rolebox"></div>
-  <div class="section-title"><h2>People & Sprint Teams</h2><span class="tiny">Add individually or paste team lists</span></div><div class="card"><div id="peopleSetup" class="setup-group"></div><div class="inline-actions"><button class="secondary" id="addPersonBtn">+ Add person</button><button class="secondary" id="bulkPeopleBtn">Paste Sprint Team lists</button></div></div>
-  <div class="section-title"><h2>Sprint Teams</h2><span class="tiny">Temporary names change when a team submits its name</span></div><div class="card"><div id="teamSetup" class="stack"></div><button class="secondary" id="addTeamBtn">+ Add Sprint Team</button></div>
-  <div class="section-title"><h2>Categories & scoring items</h2><span class="tiny">Category-first design</span></div><div class="card"><div class="notice">Create categories first, then scoring items inside them. Category totals update automatically so you can see the relative emphasis.</div><div id="setupCategories" class="stack" style="margin-top:10px"></div><button class="secondary" id="addCategoryBtn">+ Add category</button></div>
-  <div class="section-title"><h2>Sprint lifecycle</h2></div><div class="card"><p style="margin-top:0">Close out a sprint safely before starting the next one.</p><div class="stack"><button class="secondary" id="snapshotBtn">1 · Download Sprint Snapshot</button><button class="secondary" id="archiveBtn">2 · Write Historical Tables</button><button class="primary" id="freezeBtn">3 · Freeze Sprint</button><button class="secondary" id="newSprintBtn">4 · Start New Sprint from This One</button></div><div class="tiny" style="margin-top:9px">Historical Tables writes readable spreadsheet tabs for this sprint: Summary, Teams, Scoring Items, Scores, Member Info, Certifications, and Change Log. Re-running it refreshes this sprint instead of duplicating it.</div><div class="tiny" style="margin-top:7px">Starting a new sprint keeps the people list, lets you choose which scoring items to keep, clears scores/evidence, clears Sprint Team assignments, and carries member-info fields such as GitHub/Onshape forward as profile data.</div><button class="ghost" id="resetBtn" style="margin-top:12px;width:100%">Reset prototype data</button></div>
-</div></section>
-</main><footer>v12.1 Sprint transition · readable historical tables · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
+<section id="setup" class="view">
+  <div class="section-title"><h2>Sprint Setup</h2><span class="tiny">Coach only · open only the section you need</span></div>
+  <div id="setupDenied" class="notice hidden">Only the Coach can design the sprint. Scoring Mentors can record/correct progress but cannot change the sprint structure.</div>
+  <div id="setupContent" class="stack">
+    <details class="card setup-section">
+      <summary><span><b>Sprint details</b><span class="tiny">Name, dates and resource links</span></span></summary>
+      <div class="setup-section-body">
+        <div class="form-row"><div class="field"><label>Sprint name</label><input id="setupSprintName" maxlength="100"></div><div class="field"><label>FRC Team</label><input id="setupFrcTeam" maxlength="100"></div></div>
+        <div class="form-row"><div class="field"><label>Start date</label><input id="setupStart" type="date"></div><div class="field"><label>End date</label><input id="setupEnd" type="date"></div></div>
+        <div class="field"><label>Sprint information URL</label><input id="setupInfoUrl" maxlength="500" placeholder="Google Doc or other sprint description"></div>
+        <div class="field"><label>GitHub repository URL (optional)</label><input id="setupRepoUrl" maxlength="500" placeholder="Repository used for this sprint"></div>
+        <button class="secondary" id="saveSprintBtn">Save sprint details</button>
+      </div>
+    </details>
+
+    <details class="card setup-section">
+      <summary><span><b>People & roles</b><span class="tiny">Coach, Scoring Mentor and persistent people list</span></span></summary>
+      <div class="setup-section-body">
+        <div id="roleLists" class="rolebox"></div>
+        <div id="peopleSetup" class="setup-group"></div>
+        <div class="inline-actions"><button class="secondary" id="addPersonBtn">+ Add person</button></div>
+      </div>
+    </details>
+
+    <details class="card setup-section" open>
+      <summary><span><b>Sprint Teams</b><span class="tiny">Reset, paste or assign the temporary teams for this sprint</span></span></summary>
+      <div class="setup-section-body">
+        <div class="notice">Sprint Teams are temporary. People and profile information stay even when teams are reset.</div>
+        <div class="inline-actions" style="margin:10px 0">
+          <button class="secondary" id="resetTeamsBtn">Reset Sprint Teams</button>
+          <button class="secondary" id="bulkPeopleBtn">Paste New Sprint Teams</button>
+          <button class="secondary" id="addTeamBtn">+ Add Sprint Team</button>
+        </div>
+        <div id="teamSetup" class="stack"></div>
+      </div>
+    </details>
+
+    <details class="card setup-section">
+      <summary><span><b>Categories & scoring items</b><span class="tiny">Questions, points and mentor workflow</span></span></summary>
+      <div class="setup-section-body">
+        <div class="notice">Create categories first, then scoring items inside them. For every Scoring Mentor item, choose whether the team clicks <b>Ready for Scoring</b> or the mentor scores from external evidence.</div>
+        <div id="setupCategories" class="stack" style="margin-top:10px"></div>
+        <button class="secondary" id="addCategoryBtn">+ Add category</button>
+      </div>
+    </details>
+
+    <details class="card setup-section">
+      <summary><span><b>Sprint lifecycle & archive</b><span class="tiny">Snapshot, historical tables, freeze and next sprint</span></span></summary>
+      <div class="setup-section-body">
+        <p style="margin-top:0">Close out a sprint safely before starting the next one.</p>
+        <div class="stack"><button class="secondary" id="snapshotBtn">1 · Download Sprint Snapshot</button><button class="secondary" id="archiveBtn">2 · Write Historical Tables</button><button class="primary" id="freezeBtn">3 · Freeze Sprint</button><button class="secondary" id="newSprintBtn">4 · Start New Sprint from This One</button></div>
+        <div class="tiny" style="margin-top:9px">Historical Tables writes readable spreadsheet tabs for this sprint. Re-running it refreshes the sprint rather than duplicating it.</div>
+        <button class="ghost" id="resetBtn" style="margin-top:12px;width:100%">Reset prototype data</button>
+      </div>
+    </details>
+  </div>
+</section>
+</main><footer>v13 Sprint 2 workflow · simpler navigation + inline mentor scoring · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
 <div class="modal" id="modal"><div class="sheet"><button class="ghost close" onclick="closeModal()">Close</button><div id="modalContent"></div></div></div>
 <script>
 const KEY='millionPointsSharedMVP_local';
@@ -311,7 +363,7 @@ function resultHasEvidence(r){
 function roleLabel(p){return p.role==='coach'?'Coach':p.role==='scoringMentor'?'Scoring Mentor':p.role==='guest'?'Guest · View Only':'Sprint Team Member'}
 function ruleLabel(i){return{completion:'Completion',perPerson:'Points per person',count:'Count × points',partial:'Partial credit',externalPercent:'External % × points',certifications:'New certifications',memberField:'Member information %',manual:'Manual positive award',manualAwards:'Judge / discretionary awards'}[i.rule]||i.rule}
 function itemDisplayPoints(i){if(i.rule==='certifications')return `${money(i.points)} each · uncapped`;if(i.rule==='perPerson')return `${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`;if(i.rule==='count')return `${money(i.points)} each${i.cap?' · max '+i.cap:' · uncapped'}`;if(i.rule==='memberField')return i.memberScoring==='perPersonBonus'?`${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`:`${money(i.points)} at 100% complete`;if(i.rule==='manual'||i.rule==='manualAwards')return 'uncapped';return money(i.points)}
-function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');teamsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v12 Sprint 2`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));teamsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
+function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v13 Sprint 2`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
 function renderLeaderboard(){const sorted=[...state.teams].sort((a,b)=>teamTotal(b.id)-teamTotal(a.id));leaderboardRows.innerHTML=sorted.map((t,idx)=>`<tr><td class="rank">${idx+1}</td><td><button class="linkbtn" onclick="showTeam('${t.id}')">${esc(teamName(t))}</button></td><td><b>${teamTotal(t.id)?money(teamTotal(t.id)):'—'}</b></td></tr>`).join('')}
 function renderWeighting(){const baseTeam=state.teams[0];const rows=state.categories.map(c=>({c,p:catPossible(c.id,baseTeam)}));const cappedTotal=rows.reduce((s,x)=>s+x.p.total,0)||1;categoryWeighting.innerHTML=rows.map(({c,p})=>`<div class="card"><div class="meta"><b>${c.name}</b><span>${money(p.total)}${p.uncapped?' + uncapped':''}</span></div><div class="weightbar"><span style="width:${Math.min(100,p.total/cappedTotal*100)}%"></span></div><div class="tiny">${(p.total/cappedTotal*100).toFixed(0)}% of currently capped points${p.uncapped?' · plus uncapped opportunities':''}</div></div>`).join('')}
 function evidenceSummary(team,item){const r=result(team.id,item.id);if(item.rule==='completion')return r.text?(isUrl(r.text)?'Link submitted':r.text):'Not yet submitted';if(item.rule==='perPerson')return `${(r.people||[]).length}/${r.rosterSize||teamMembers(team.id).length} members`;if(item.rule==='count')return `${r.count||0} counted`;if(item.rule==='partial'||item.rule==='externalPercent')return `${r.percent||0}%`;if(item.rule==='certifications')return `${(r.entries||[]).length} certifications`;if(item.rule==='memberField'){const values=r.values||{};const done=teamMembers(team.id).filter(m=>memberFieldComplete(item,values[m.name])).length;return `${done}/${r.rosterSize||teamMembers(team.id).length} members`};if(item.rule==='manual')return r.note||'No award yet';if(item.rule==='manualAwards')return `${(r.awards||[]).length} award${(r.awards||[]).length===1?'':'s'}`;return ''}
@@ -375,34 +427,7 @@ function mentorItemCounts(item){
   return {ready,scored,total};
 }
 let activeMentorItemId='';
-function renderMentorItemList(){
-  if(!window.mentorItemPanel)return;
-  const u=currentUser();
-  if(!u||(u.role!=='coach'&&u.role!=='scoringMentor')){mentorItemPanel.classList.add('hidden');mentorItemWorkspace.classList.add('hidden');return}
-  mentorItemPanel.classList.remove('hidden');
-  const items=mentorScoringItems();
-  if(!items.length){mentorItemList.innerHTML='<div class="notice">No Scoring Mentor items are configured.</div>';return}
-  mentorItemList.innerHTML=items.map(i=>{
-    const c=mentorItemCounts(i);
-    let meta=isTeamReadyItem(i)?`${c.ready} Sprint Team${c.ready===1?'':'s'} ready now · ${c.scored}/${c.total} have scoring activity`:`External evidence · ${c.scored}/${c.total} have scoring activity`;
-    return `<div class="mentor-item-row"><div><div class="mentor-item-title">${esc(i.name)}</div><div class="mentor-item-meta">${esc(meta)}${i.dueAt?' · '+esc(deadlineLabel(i)):''}</div></div><div class="task-action"><button class="secondary" onclick="openMentorItem('${i.id}')">Score item</button></div></div>`;
-  }).join('');
-  if(activeMentorItemId)renderMentorWorkspace();
-}
-function openMentorItem(itemId){
-  activeMentorItemId=itemId;
-  renderMentorWorkspace();
-  mentorItemWorkspace.classList.remove('hidden');
-  mentorItemWorkspace.scrollIntoView({behavior:'smooth',block:'start'});
-}
-function closeMentorItem(){
-  activeMentorItemId='';
-  mentorItemWorkspace.classList.add('hidden');
-  mentorItemWorkspaceContent.innerHTML='';
-}
-function renderMentorWorkspace(){
-  const item=state.items.find(i=>i.id===activeMentorItemId);
-  if(!item){closeMentorItem();return}
+function mentorWorkspaceHtml(item){
   const teams=sortedTeams();
   const row=t=>{
     const r=result(t.id,item.id);
@@ -416,13 +441,32 @@ function renderMentorWorkspace(){
     }else{
       status=resultHasEvidence(r)?'<span class="status-pill done">Scoring entered</span>':'<span class="status-pill">Needs score</span>';
     }
-    const meta=r.scoredAt?`Last scoring save ${new Date(r.scoredAt).toLocaleString()}${r.scoredBy?' by '+esc(r.scoredBy):''}`:'No scoring save yet';
-    return `<div class="workspace-team-row"><div><div class="workspace-team-name">${esc(teamName(t))} ${status}</div><div class="workspace-meta">${meta} · ${money(r.points||0)} points</div></div><div class="task-action"><button class="secondary" onclick="openSpecificScore('${t.id}','${item.id}')">Score this team</button></div></div>`;
+    const meta=r.scoredAt?`Last save ${new Date(r.scoredAt).toLocaleString()}${r.scoredBy?' by '+esc(r.scoredBy):''}`:'No scoring save yet';
+    return `<div class="workspace-team-row"><div><div class="workspace-team-name">${esc(teamName(t))} ${status}</div><div class="workspace-meta">${meta} · ${money(r.points||0)} points</div></div><div class="task-action"><button class="secondary" onclick="openSpecificScore('${t.id}','${item.id}')">Score / edit</button></div></div>`;
   };
   const readyTeams=isTeamReadyItem(item)?teams.filter(t=>readyNeedsScoring(result(t.id,item.id))):teams;
   const otherTeams=isTeamReadyItem(item)?teams.filter(t=>!readyNeedsScoring(result(t.id,item.id))):[];
-  mentorItemWorkspaceContent.innerHTML=`<div class="item-workspace-header"><div><div class="eyebrow">${esc(state.categories.find(c=>c.id===item.categoryId)?.name||'Scoring')}</div><h3 style="margin:4px 0">${esc(item.name)}</h3><div class="tiny">${isTeamReadyItem(item)?'Sprint Teams signal when they are ready for mentor review.':'Score this item from external evidence across the Sprint Teams.'}</div></div><div class="item-workspace-actions"><button class="ghost" onclick="closeMentorItem()">Close</button></div></div>${isTeamReadyItem(item)?`<div class="subsection-label">Ready now</div>${readyTeams.length?readyTeams.map(row).join(''):'<div class="tiny" style="padding:10px 0">No Sprint Teams are currently waiting for scoring.</div>'}<div class="subsection-label">Other Sprint Teams</div>${otherTeams.map(row).join('')}`:teams.map(row).join('')}`;
+  return `<div class="mutedbox" style="margin:8px 0 12px"><div class="tiny" style="margin-bottom:7px">${isTeamReadyItem(item)?'Teams marked Ready are shown first.':'Score this item from external evidence across the Sprint Teams.'}</div>${isTeamReadyItem(item)?`<div class="subsection-label">Ready now</div>${readyTeams.length?readyTeams.map(row).join(''):'<div class="tiny" style="padding:8px 0">No teams are waiting for scoring.</div>'}<div class="subsection-label">Other teams</div>${otherTeams.map(row).join('')}`:teams.map(row).join('')}</div>`;
 }
+function renderMentorItemList(){
+  const u=currentUser(),show=u&&(u.role==='coach'||u.role==='scoringMentor');
+  mentorItemPanel.classList.toggle('hidden',!show);
+  mentorItemWorkspace.classList.add('hidden');
+  if(!show){mentorItemList.innerHTML='';return}
+  const items=state.items.filter(i=>i.recorder==='mentor');
+  mentorItemList.innerHTML=items.length?items.map(i=>{
+    const c=mentorItemCounts(i);
+    const meta=isTeamReadyItem(i)?`${c.ready} Sprint Team${c.ready===1?'':'s'} ready now · ${c.scored}/${c.total} have scoring activity`:`External evidence · ${c.scored}/${c.total} have scoring activity`;
+    const expanded=activeMentorItemId===i.id;
+    return `<div><div class="mentor-item-row"><div><div class="mentor-item-title">${esc(i.name)}</div><div class="mentor-item-meta">${esc(meta)}${i.dueAt?' · '+esc(deadlineLabel(i)):''}</div></div><div class="task-action"><button class="secondary" onclick="openMentorItem('${i.id}')">${expanded?'Close':'Score item'}</button></div></div>${expanded?mentorWorkspaceHtml(i):''}</div>`;
+  }).join(''):'<div class="tiny">No Scoring Mentor items in this sprint.</div>';
+}
+function openMentorItem(itemId){
+  activeMentorItemId=activeMentorItemId===itemId?'':itemId;
+  renderMentorItemList();
+}
+function closeMentorItem(){activeMentorItemId='';renderMentorItemList()}
+function renderMentorWorkspace(){renderMentorItemList()}
 function openSpecificScore(teamId,itemId){
   showView('record');
   renderRecordSelectors();
@@ -430,7 +474,8 @@ function openSpecificScore(teamId,itemId){
   renderItemOptions();
   itemSelect.value=itemId;
   renderDynamic();
-  specificScoreCard.scrollIntoView({behavior:'smooth',block:'start'});
+  specificScoreCard.open=true;
+  specificScoreCard.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function renderRecordSelectors(){const u=currentUser();if(!u){teamSelect.innerHTML='';itemSelect.innerHTML='';dynamicInput.innerHTML='';saveBtn.disabled=true;return}const ts=eligibleTeams();teamSelect.innerHTML=ts.map(t=>`<option value="${t.id}">${teamName(t)}</option>`).join('');if(ts.length){if(!ts.some(t=>t.id===teamSelect.value))teamSelect.value=ts[0].id;renderItemOptions()}else{itemSelect.innerHTML='';dynamicInput.innerHTML='<div class="notice">No editable Sprint Team.</div>';saveBtn.disabled=true}recordHint.textContent=currentUser().role==='member'?'See what your Sprint Team can do, record, or send to mentors for scoring.':currentUser().role==='scoringMentor'?'Choose a scoring item first, then work through the Sprint Teams.':'Coach can score by item or make a specific team correction.';renderStudentActivities();renderMentorItemList()}
@@ -506,8 +551,42 @@ function changeRole(id,role){const p=state.people.find(x=>x.id===id);if(!p)retur
 function changeTeam(id,teamId){const p=state.people.find(x=>x.id===id);if(!p)return;p.teamId=teamId;rebuildCarryProfileResults();save()}
 function removePerson(id){if(!confirm('Remove this person from the prototype?'))return;state.people=state.people.filter(p=>p.id!==id);save()}
 function addPerson(){modalContent.innerHTML=`<div class="eyebrow">People & roles</div><h3>Add person</h3><div class="field"><label>Name</label><input id="newPersonName" maxlength="80" placeholder="Person name"></div><div class="form-row"><div class="field"><label>Role</label><select id="newPersonRole"><option value="member">Sprint Team Member</option><option value="scoringMentor">Scoring Mentor</option><option value="coach">Coach</option></select></div><div class="field"><label>Sprint Team</label><select id="newPersonTeam"><option value="">No Sprint Team yet</option>${sortedTeams().map(t=>`<option value="${t.id}">${esc(teamName(t))}</option>`).join('')}</select></div></div><button class="primary" id="confirmAddPerson">Add person</button>`;openModal();$('newPersonName').focus();$('confirmAddPerson').onclick=()=>{const name=$('newPersonName').value.trim();if(!name)return alert('Enter a person name.');state.people.push({id:'p'+Date.now(),name,role:$('newPersonRole').value,teamId:$('newPersonTeam').value});closeModal();save()}}
-function bulkPeople(){const example=`Sprint Team 1\nAarna\nRitvik\nMonica G\n\nSprint Team 2\nIon\nDiya\nKalyan\nPuneet`;modalContent.innerHTML=`<div class="eyebrow">Fast setup</div><h3>Paste Sprint Team lists</h3><p class="sub">Use a Sprint Team heading, then one person per line. Existing names are reassigned rather than duplicated when possible.</p><div class="bulk-example">${example}</div><div class="field"><label>Paste lists</label><textarea id="bulkText" maxlength="10000" style="min-height:220px"></textarea></div><button class="primary" id="bulkImportBtn">Import people + assignments</button>`;openModal();$('bulkText').focus();$('bulkImportBtn').onclick=()=>{const lines=$('bulkText').value.split(/\r?\n/).map(x=>x.trim());let currentTeam=null;for(const line of lines){if(!line)continue;const team=state.teams.find(t=>t.slot.toLowerCase()===line.toLowerCase()||teamName(t).toLowerCase()===line.toLowerCase());if(team){currentTeam=team.id;continue}if(!currentTeam)continue;let p=state.people.find(x=>x.name.toLowerCase()===line.toLowerCase());if(p)p.teamId=currentTeam;else state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),name:line,role:'member',teamId:currentTeam})}closeModal();save()}}
-function addTeam(){const n=state.teams.length+1;state.teams.push({id:'t'+Date.now(),slot:`Sprint Team ${n}`,color:'#888888'});save()}
+function bulkPeople(){
+  const example=`Avutar\nAarna\nGitali\nRitvik\nVarad\n\nFlaming Pickles\nAnish\nMahi\nNysha\nRisha`;
+  modalContent.innerHTML=`<div class="eyebrow">Fast Sprint Team setup</div><h3>Paste New Sprint Teams</h3><p class="sub">Use one block per team: team name on the first line, then one person per line. Separate teams with a blank line. Existing people are reassigned; names that do not exist yet are added as Sprint Team Members.</p><div class="bulk-example">${example}</div><div class="field"><label>Paste team blocks</label><textarea id="bulkText" maxlength="12000" style="min-height:260px"></textarea></div><button class="primary" id="bulkImportBtn">Create teams + assignments</button>`;
+  openModal();$('bulkText').focus();
+  $('bulkImportBtn').onclick=()=>{
+    const raw=$('bulkText').value.trim();if(!raw)return alert('Paste at least one Sprint Team.');
+    const blocks=raw.split(/\r?\n\s*\r?\n/).map(b=>b.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)).filter(b=>b.length);
+    if(!blocks.length)return alert('No Sprint Teams found.');
+    for(const block of blocks){
+      const heading=block[0], names=block.slice(1);
+      let team=state.teams.find(t=>teamName(t).toLowerCase()===heading.toLowerCase()||String(t.slot||'').toLowerCase()===heading.toLowerCase());
+      if(!team){
+        const n=state.teams.length+1;
+        team={id:'t'+Date.now()+Math.random().toString(36).slice(2,6),slot:'Sprint Team '+n,name:heading,color:'#888888'};
+        state.teams.push(team);
+      }else{
+        team.name=heading;
+      }
+      for(const name of names){
+        let p=state.people.find(x=>String(x.name||'').toLowerCase()===name.toLowerCase());
+        if(p)p.teamId=team.id;
+        else state.people.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,7),name,role:'member',teamId:team.id});
+      }
+    }
+    rebuildCarryProfileResults();closeModal();save();
+  }
+}
+function resetSprintTeams(){
+  if(!confirm('Reset Sprint Teams for this sprint?\n\nThis will unassign everyone, delete the current Sprint Teams, and clear current Sprint Team scoring/results.\n\nPeople, roles, GitHub/Onshape profile information, categories, scoring items and sprint settings will remain.'))return;
+  state.people=state.people.map(p=>({...p,teamId:''}));
+  state.teams=[];
+  state.results={};
+  save();
+  setSyncStatus('Sprint Teams reset ✓ Paste or add the new teams.','ok');
+}
+function addTeam(){const n=state.teams.length+1;state.teams.push({id:'t'+Date.now(),slot:`Sprint Team ${n}`,name:`Sprint Team ${n}`,color:'#888888'});save()}
 function addCategory(){openCategoryEditor({id:'c'+Date.now(),name:'',description:''},true)}
 function editCategory(id){const c=state.categories.find(x=>x.id===id);if(c)openCategoryEditor(structuredClone(c),false)}
 function openCategoryEditor(c,isNew){const currentIndex=isNew?state.categories.length:state.categories.findIndex(x=>x.id===c.id);modalContent.innerHTML=`<div class="eyebrow">Category setup</div><h3>${isNew?'Add':'Edit'} category</h3><div class="field"><label>Category name</label><input id="catName" value="${esc(c.name||'')}" maxlength="60" placeholder="e.g. Team Building"></div><div class="field"><label>Tagline / description</label><textarea id="catDescription" maxlength="180" placeholder="What does this category emphasize?">${esc(c.description||'')}</textarea></div><div class="field"><label>Display order</label><select id="catOrder">${Array.from({length:state.categories.length+(isNew?1:0)},(_,idx)=>`<option value="${idx}" ${idx===currentIndex?'selected':''}>${idx+1}</option>`).join('')}</select></div><button class="primary" id="saveCategoryEdit">${isNew?'Add category':'Save category'}</button>`;openModal();$('catName').focus();$('saveCategoryEdit').onclick=()=>{const name=$('catName').value.trim();if(!name)return alert('Give the category a name.');const out={...c,name,description:$('catDescription').value.trim()};let arr=state.categories.filter(x=>x.id!==c.id);const pos=Math.max(0,Math.min(+$('catOrder').value||0,arr.length));arr.splice(pos,0,out);state.categories=arr;closeModal();save()}}
@@ -515,7 +594,7 @@ function addItem(catId){openItemEditor({id:'i'+Date.now(),categoryId:catId,name:
 function editItem(id){const i=state.items.find(x=>x.id===id);if(i)openItemEditor(structuredClone(i),false)}
 function duplicateItem(id){const i=state.items.find(x=>x.id===id);if(!i)return;const copy=structuredClone(i);copy.id='i'+Date.now();copy.name=i.name+' copy';openItemEditor(copy,true)}
 function moveItem(id,dir){const idx=state.items.findIndex(i=>i.id===id);if(idx<0)return;const item=state.items[idx];const same=state.items.map((i,n)=>({i,n})).filter(x=>x.i.categoryId===item.categoryId);const pos=same.findIndex(x=>x.i.id===id),target=same[pos+dir];if(!target)return;const otherIdx=target.n;[state.items[idx],state.items[otherIdx]]=[state.items[otherIdx],state.items[idx]];save()}
-function openItemEditor(i,isNew){modalContent.innerHTML=`<div class="eyebrow">Scoring item</div><h3>${isNew?'Add':'Edit'} item</h3><div class="field"><label>Name</label><input id="eName" maxlength="100" value="${esc(i.name||'')}"></div><div class="field"><label>Instructions</label><textarea id="eInstructions" maxlength="500">${esc(i.instructions||'')}</textarea></div><div class="form-row"><div class="field"><label>Calculation</label><select id="eRule"><option value="completion">Completion</option><option value="perPerson">Points per person</option><option value="count">Count × points</option><option value="partial">Partial credit</option><option value="externalPercent">External percentage</option><option value="certifications">New certifications (uncapped)</option><option value="memberField">Member information / account %</option><option value="manual">Manual positive award</option><option value="manualAwards">Judge / discretionary awards</option></select></div><div class="field"><label>Who records this?</label><select id="eRecorder"><option value="team">Sprint Team</option><option value="mentor">Scoring Mentor</option><option value="coach">Coach only</option></select></div></div><div id="mentorWorkflowFields" class="card" style="margin-bottom:10px"><div class="field"><label>For Scoring Mentor items, how does it reach scoring?</label><select id="eScoringFlow"><option value="external">Mentor scores from external evidence</option><option value="teamReady">Sprint Team marks Ready for Scoring</option></select><div class="tiny">Examples: Apollo/CheckMeIn = external evidence. “Decision making is in document” = team marks Ready for Scoring.</div></div></div><div id="judgeSetupNote" class="notice hidden">Judge / discretionary awards are variable and uncapped. The Scoring Mentor or Coach enters the point amount and required reason each time an award is recorded. Multiple awards can be added to each Sprint Team.</div><div id="standardPointsFields" class="form-row"><div class="field"><label>Point value</label><input id="ePoints" type="number" min="0" value="${i.points||0}"></div><div class="field"><label>All-team bonus (optional)</label><input id="eBonus" type="number" min="0" value="${i.bonus||0}"></div></div><div id="countFields" class="field hidden"><label>Maximum count (optional)</label><input id="eCap" type="number" min="0" step="1" value="${i.cap||''}" placeholder="Leave blank for uncapped"><div class="tiny">For Count × Points only.</div></div><div id="memberFields"><div class="field"><label>Member field label</label><input id="eFieldLabel" maxlength="80" value="${esc(i.fieldLabel||'')}" placeholder="e.g. GitHub username or FIRST Inspires registered"></div><div class="field"><label>Member field input</label><select id="eFieldType"><option value="text">Text / account ID</option><option value="yesNo">Yes / No</option></select><div class="tiny">For Yes/No fields, only “Yes” counts as complete for Million Points.</div></div><div class="field"><label>Member info scoring</label><select id="eMemberScoring"><option value="percent">Percentage complete × point value</option><option value="perPersonBonus">Points per completed member + all-team bonus</option></select></div></div><div class="card" style="margin-top:10px"><div class="form-row"><div class="field"><label>Due date (optional)</label><input id="eDueDate" type="date" value="${i.dueAt?String(i.dueAt).slice(0,10):''}"></div><div class="field"><label>Due time</label><input id="eDueTime" type="time" value="${i.dueAt&&String(i.dueAt).length>=16?String(i.dueAt).slice(11,16):'23:59'}"></div></div><div class="tiny">Leave the date blank for items that stay active all sprint. If a date is entered without changing the time, it closes at 11:59 PM.</div><div class="tiny" style="margin-top:4px">Currently stored: ${i.dueAt?esc(String(i.dueAt)):'No due date'}</div><div class="field"><label>Scoring Mentor grace period after deadline</label><select id="eGrace"><option value="0">Same deadline</option><option value="1">+1 day</option><option value="2">+2 days</option><option value="3">+3 days</option></select></div></div><button class="primary" id="saveItemEdit" style="margin-top:10px">Save scoring item</button>`;$('eRule').value=i.rule;$('eRecorder').value=i.recorder;$('eScoringFlow').value=i.scoringFlow||'external';$('eMemberScoring').value=i.memberScoring||'percent';$('eFieldType').value=i.fieldType||'text';$('eGrace').value=String(i.mentorGraceDays??1);const updateFields=()=>{const rule=$('eRule').value;$('judgeSetupNote').classList.toggle('hidden',rule!=='manualAwards');$('standardPointsFields').classList.toggle('hidden',rule==='manualAwards');$('countFields').classList.toggle('hidden',rule!=='count');$('memberFields').classList.toggle('hidden',rule!=='memberField');$('mentorWorkflowFields').classList.toggle('hidden',$('eRecorder').value!=='mentor')};$('eRule').onchange=updateFields;$('eRecorder').onchange=updateFields;updateFields();openModal();$('saveItemEdit').onclick=async()=>{const rule=$('eRule').value;const out={...i,name:$('eName').value.trim(),instructions:$('eInstructions').value.trim(),rule,recorder:$('eRecorder').value,scoringFlow:$('eScoringFlow').value,points:rule==='manualAwards'?0:(+$('ePoints').value||0),bonus:rule==='manualAwards'?0:(+$('eBonus').value||0),fieldLabel:$('eFieldLabel').value.trim().slice(0,80),fieldType:$('eFieldType').value,memberScoring:$('eMemberScoring').value,cap:rule==='count'?Math.max(0,+$('eCap').value||0):0,dueAt:$('eDueDate').value?($('eDueDate').value+'T'+($('eDueTime').value||'23:59')):'',mentorGraceDays:Math.max(0,+$('eGrace').value||0)};if(!out.name)return alert('Give the scoring item a name.');const btn=$('saveItemEdit');btn.disabled=true;btn.textContent='Saving…';if(isNew){state.items.push(out);closeModal();save();return}const ok=await pushScoringItem(out);if(ok){closeModal()}else{btn.disabled=false;btn.textContent='Save scoring item'}}}
+function openItemEditor(i,isNew){modalContent.innerHTML=`<div class="eyebrow">Scoring item</div><h3>${isNew?'Add':'Edit'} item</h3><div class="field"><label>Name</label><input id="eName" maxlength="100" value="${esc(i.name||'')}"></div><div class="field"><label>Instructions</label><textarea id="eInstructions" maxlength="500">${esc(i.instructions||'')}</textarea></div><div class="form-row"><div class="field"><label>Calculation</label><select id="eRule"><option value="completion">Completion</option><option value="perPerson">Points per person</option><option value="count">Count × points</option><option value="partial">Partial credit</option><option value="externalPercent">External percentage</option><option value="certifications">New certifications (uncapped)</option><option value="memberField">Member information / account %</option><option value="manual">Manual positive award</option><option value="manualAwards">Judge / discretionary awards</option></select></div><div class="field"><label>Who records this?</label><select id="eRecorder"><option value="team">Sprint Team</option><option value="mentor">Scoring Mentor</option><option value="coach">Coach only</option></select></div></div><div id="mentorWorkflowFields" class="card" style="margin-bottom:10px"><div class="field"><label>Mentor scoring workflow</label><select id="eScoringFlow"><option value="external">Mentor scores from external evidence — no team action needed</option><option value="teamReady">Sprint Team clicks Ready for Scoring first</option></select><div class="tiny">Use Ready for Scoring when the team knows when the work is complete. Use external evidence for things such as imported attendance, surveys or other mentor-owned data.</div></div></div><div id="judgeSetupNote" class="notice hidden">Judge / discretionary awards are variable and uncapped. The Scoring Mentor or Coach enters the point amount and required reason each time an award is recorded. Multiple awards can be added to each Sprint Team.</div><div id="standardPointsFields" class="form-row"><div class="field"><label>Point value</label><input id="ePoints" type="number" min="0" value="${i.points||0}"></div><div class="field"><label>All-team bonus (optional)</label><input id="eBonus" type="number" min="0" value="${i.bonus||0}"></div></div><div id="countFields" class="field hidden"><label>Maximum count (optional)</label><input id="eCap" type="number" min="0" step="1" value="${i.cap||''}" placeholder="Leave blank for uncapped"><div class="tiny">For Count × Points only.</div></div><div id="memberFields"><div class="field"><label>Member field label</label><input id="eFieldLabel" maxlength="80" value="${esc(i.fieldLabel||'')}" placeholder="e.g. GitHub username or FIRST Inspires registered"></div><div class="field"><label>Member field input</label><select id="eFieldType"><option value="text">Text / account ID</option><option value="yesNo">Yes / No</option></select><div class="tiny">For Yes/No fields, only “Yes” counts as complete for Million Points.</div></div><div class="field"><label>Member info scoring</label><select id="eMemberScoring"><option value="percent">Percentage complete × point value</option><option value="perPersonBonus">Points per completed member + all-team bonus</option></select></div></div><div class="card" style="margin-top:10px"><div class="form-row"><div class="field"><label>Due date (optional)</label><input id="eDueDate" type="date" value="${i.dueAt?String(i.dueAt).slice(0,10):''}"></div><div class="field"><label>Due time</label><input id="eDueTime" type="time" value="${i.dueAt&&String(i.dueAt).length>=16?String(i.dueAt).slice(11,16):'23:59'}"></div></div><div class="tiny">Leave the date blank for items that stay active all sprint. If a date is entered without changing the time, it closes at 11:59 PM.</div><div class="tiny" style="margin-top:4px">Currently stored: ${i.dueAt?esc(String(i.dueAt)):'No due date'}</div><div class="field"><label>Scoring Mentor grace period after deadline</label><select id="eGrace"><option value="0">Same deadline</option><option value="1">+1 day</option><option value="2">+2 days</option><option value="3">+3 days</option></select></div></div><button class="primary" id="saveItemEdit" style="margin-top:10px">Save scoring item</button>`;$('eRule').value=i.rule;$('eRecorder').value=i.recorder;$('eScoringFlow').value=i.scoringFlow||'external';$('eMemberScoring').value=i.memberScoring||'percent';$('eFieldType').value=i.fieldType||'text';$('eGrace').value=String(i.mentorGraceDays??1);const updateFields=()=>{const rule=$('eRule').value;$('judgeSetupNote').classList.toggle('hidden',rule!=='manualAwards');$('standardPointsFields').classList.toggle('hidden',rule==='manualAwards');$('countFields').classList.toggle('hidden',rule!=='count');$('memberFields').classList.toggle('hidden',rule!=='memberField');$('mentorWorkflowFields').classList.toggle('hidden',$('eRecorder').value!=='mentor')};$('eRule').onchange=updateFields;$('eRecorder').onchange=updateFields;updateFields();openModal();$('saveItemEdit').onclick=async()=>{const rule=$('eRule').value;const out={...i,name:$('eName').value.trim(),instructions:$('eInstructions').value.trim(),rule,recorder:$('eRecorder').value,scoringFlow:$('eScoringFlow').value,points:rule==='manualAwards'?0:(+$('ePoints').value||0),bonus:rule==='manualAwards'?0:(+$('eBonus').value||0),fieldLabel:$('eFieldLabel').value.trim().slice(0,80),fieldType:$('eFieldType').value,memberScoring:$('eMemberScoring').value,cap:rule==='count'?Math.max(0,+$('eCap').value||0):0,dueAt:$('eDueDate').value?($('eDueDate').value+'T'+($('eDueTime').value||'23:59')):'',mentorGraceDays:Math.max(0,+$('eGrace').value||0)};if(!out.name)return alert('Give the scoring item a name.');const btn=$('saveItemEdit');btn.disabled=true;btn.textContent='Saving…';if(isNew){state.items.push(out);closeModal();save();return}const ok=await pushScoringItem(out);if(ok){closeModal()}else{btn.disabled=false;btn.textContent='Save scoring item'}}}
 function showTeam(id){const t=state.teams.find(x=>x.id===id);modalContent.innerHTML=`<div class="eyebrow">Sprint Team</div><h3>${esc(teamName(t))}</h3><div class="score">${money(teamTotal(t.id))} <small>Million Points</small></div><div class="memberchips">${teamMembers(t.id).sort((a,b)=>a.name.localeCompare(b.name)).map(m=>`<span class="chip">${esc(m.name)}</span>`).join('')}</div>${state.categories.map(c=>`<div class="row"><div><b>${c.name}</b></div><div class="points">${money(categoryEarned(t.id,c.id))}</div></div>`).join('')}`;openModal()}
 function memberFieldRows(item){const rows=[['Name',item.fieldLabel||item.name,'Sprint Team']];for(const t of sortedTeams()){const vals=result(t.id,item.id).values||{};for(const m of teamMembers(t.id))rows.push([m.name,vals[m.name]||'',teamName(t)])}return rows}
 function exportMemberField(item){const rows=memberFieldRows(item);const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(item.name||'member-list').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.csv';a.click();URL.revokeObjectURL(a.href)}
@@ -765,6 +844,6 @@ function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.
 function renderLifecycle(){frozenNotice.classList.toggle('hidden',!state.frozen);freezeBtn.textContent=state.frozen?'Sprint Frozen':'Freeze Sprint';freezeBtn.disabled=state.frozen}
 function renderAll(){renderUser();renderLeaderboard();renderWeighting();renderScoringOverview();renderTeams();renderRecordSelectors();renderSetup();renderReports();renderPublicMatrix();renderLifecycle()}
 function openModal(){modal.classList.add('open')}function closeModal(){modal.classList.remove('open')}
-teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;$('snapshotBtn').onclick=downloadSprintSnapshot;$('archiveBtn').onclick=writeHistoricalTables;$('newSprintBtn').onclick=openNewSprintWizard;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportTypeSelect').onchange=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
+teamSelect.onchange=renderItemOptions;itemSelect.onchange=renderDynamic;saveBtn.onclick=saveProgress;saveSprintBtn.onclick=saveSprint;$('addPersonBtn').onclick=addPerson;$('bulkPeopleBtn').onclick=bulkPeople;$('resetTeamsBtn').onclick=resetSprintTeams;addTeamBtn.onclick=addTeam;addCategoryBtn.onclick=addCategory;$('snapshotBtn').onclick=downloadSprintSnapshot;$('archiveBtn').onclick=writeHistoricalTables;$('newSprintBtn').onclick=openNewSprintWizard;freezeBtn.onclick=()=>{if(confirm('Freeze this sprint as a historical record?')){state.frozen=true;save()}};resetBtn.onclick=()=>{if(confirm('Reset this browser to the starter data? This does NOT erase the shared Google Sheet until you make another edit.')){state=structuredClone(initial);localStorage.removeItem(KEY);renderAll()}};$('enterBtn').onclick=choosePerson;$('switchPersonBtn').onclick=switchPerson;$('refreshSharedBtn').onclick=()=>loadShared(true);$('printScoringBtn').onclick=()=>window.print();$('reportRefreshBtn').onclick=renderSelectedReport;$('reportTypeSelect').onchange=renderSelectedReport;$('reportItemSelect').onchange=renderSelectedReport;$('reportTeamSelect').onchange=renderSelectedReport;$('reportSortSelect').onchange=renderSelectedReport;$('reportCopyBtn').onclick=copyReport;$('reportCsvBtn').onclick=downloadReportCsv;$('reportPrintBtn').onclick=printReport;document.querySelectorAll('.nav button').forEach(b=>b.onclick=async()=>{if(b.classList.contains('hidden'))return;showView(b.dataset.view);if(b.dataset.view==='record'||b.dataset.view==='reports')await loadShared(false);renderAll()});renderAll();openEntry();loadShared(false);
 </script>
 </body></html>
