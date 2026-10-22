@@ -46,6 +46,15 @@
 .log-row{padding:10px 0;border-top:1px solid var(--line)}.log-row:first-child{border-top:0}.log-time{font-size:11px;color:var(--muted)}
 @media(max-width:780px){.task-row{display:block}.task-row .task-action{margin-top:8px}.task-row button{width:100%}}
 
+.score-category{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.015)}
+.score-category:first-child{margin-top:0}
+.score-category-head{padding:10px 13px;background:rgba(255,255,255,.045);font-weight:850;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.score-category-items{padding:0 12px}
+.mentor-item-row{padding:10px 0}
+.mentor-item-title{font-size:14px}
+.mentor-item-meta{line-height:1.35}
+.mentor-item-row .task-action button{padding:8px 12px;font-size:13px}
+.recorder-badge{display:inline-block;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;background:rgba(255,255,255,.07);margin-right:5px}
 .activity-row,.mentor-item-row,.workspace-team-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .activity-row:first-child,.mentor-item-row:first-child,.workspace-team-row:first-child{border-top:0}
 .activity-title,.mentor-item-title{font-weight:800}
@@ -92,7 +101,7 @@
 </div>
 
 <div class="card hidden" id="mentorItemPanel" style="margin-bottom:12px">
-  <div class="section-title" style="margin-bottom:8px"><div><h3 style="margin:0">Score by Item</h3><span class="tiny">Choose what you are scoring, then work through the Sprint Teams.</span></div></div>
+  <div class="section-title" style="margin-bottom:8px"><div><h3 style="margin:0">Score / Review by Item</h3><span class="tiny">All scoring items, grouped by category. Open one item to work across the Sprint Teams.</span></div></div>
   <div id="mentorItemList"></div>
 </div>
 
@@ -192,7 +201,7 @@
     </details>
   </div>
 </section>
-</main><footer>v15 Sprint 2 imports · GP nominations + delete items · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
+</main><footer>v16 Record Progress · all items + category layout · GitHub Pages + Google Apps Script + TFI Google Sheet</footer></div>
 <div class="modal" id="modal"><div class="sheet"><button class="ghost close" onclick="closeModal()">Close</button><div id="modalContent"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
@@ -364,7 +373,7 @@ function resultHasEvidence(r){
 function roleLabel(p){return p.role==='coach'?'Coach':p.role==='scoringMentor'?'Scoring Mentor':p.role==='guest'?'Guest · View Only':'Sprint Team Member'}
 function ruleLabel(i){return{completion:'Completion',perPerson:'Points per person',count:'Count × points',partial:'Partial credit',externalPercent:'External % × points',certifications:'New certifications',memberField:'Member information %',manual:'Manual positive award',manualAwards:'Judge / discretionary awards'}[i.rule]||i.rule}
 function itemDisplayPoints(i){if(i.rule==='certifications')return `${money(i.points)} each · uncapped`;if(i.rule==='perPerson')return `${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`;if(i.rule==='count')return `${money(i.points)} each${i.cap?' · max '+i.cap:' · uncapped'}`;if(i.rule==='memberField')return i.memberScoring==='perPersonBonus'?`${money(i.points)}/person${i.bonus?' + '+money(i.bonus)+' all-team bonus':''}`:`${money(i.points)} at 100% complete`;if(i.rule==='manualAwards'&&i.inputMethod==='gpNominationPaste')return `${money(i.gpNominatePoints||0)} nominate · ${money(i.gpReceivePoints||0)} nominated`;if(i.rule==='manual'||i.rule==='manualAwards')return 'uncapped';return money(i.points)}
-function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v15 Sprint 2`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
+function renderUser(){const u=currentUser();if(!u){identityPill.textContent='Choose a person';rolePill.textContent='';setupTab.classList.add('hidden');recordTab.classList.add('hidden');reportsTab.classList.add('hidden');return}identityPill.textContent=u.name;rolePill.textContent=roleLabel(u);freezePill.textContent=state.frozen?'Sprint frozen':'Sprint active';frcTeamLabel.textContent=`${state.sprint.frcTeam} · FRC Team`;sprintLabel.textContent=`${state.sprint.name} · ${state.sprint.start} to ${state.sprint.end} · v16 Sprint 2`;setupTab.classList.toggle('hidden',u.role!=='coach');recordTab.classList.toggle('hidden',u.role==='guest');reportsTab.classList.toggle('hidden',!(u.role==='coach'||u.role==='scoringMentor'));resourceLinks.innerHTML=[state.sprint.infoUrl?`<a href="${state.sprint.infoUrl}" target="_blank" rel="noopener">Sprint information</a>`:'',state.sprint.repoUrl?`<a href="${state.sprint.repoUrl}" target="_blank" rel="noopener">GitHub repository</a>`:''].join('')}
 function renderLeaderboard(){const sorted=[...state.teams].sort((a,b)=>teamTotal(b.id)-teamTotal(a.id));leaderboardRows.innerHTML=sorted.map((t,idx)=>`<tr><td class="rank">${idx+1}</td><td><button class="linkbtn" onclick="showTeam('${t.id}')">${esc(teamName(t))}</button></td><td><b>${teamTotal(t.id)?money(teamTotal(t.id)):'—'}</b></td></tr>`).join('')}
 function renderWeighting(){const baseTeam=state.teams[0];const rows=state.categories.map(c=>({c,p:catPossible(c.id,baseTeam)}));const cappedTotal=rows.reduce((s,x)=>s+x.p.total,0)||1;categoryWeighting.innerHTML=rows.map(({c,p})=>`<div class="card"><div class="meta"><b>${c.name}</b><span>${money(p.total)}${p.uncapped?' + uncapped':''}</span></div><div class="weightbar"><span style="width:${Math.min(100,p.total/cappedTotal*100)}%"></span></div><div class="tiny">${(p.total/cappedTotal*100).toFixed(0)}% of currently capped points${p.uncapped?' · plus uncapped opportunities':''}</div></div>`).join('')}
 function evidenceSummary(team,item){const r=result(team.id,item.id);if(item.rule==='completion')return r.text?(isUrl(r.text)?'Link submitted':r.text):'Not yet submitted';if(item.rule==='perPerson')return `${(r.people||[]).length}/${r.rosterSize||teamMembers(team.id).length} members`;if(item.rule==='count')return `${r.count||0} counted`;if(item.rule==='partial'||item.rule==='externalPercent')return `${r.percent||0}%`;if(item.rule==='certifications')return `${(r.entries||[]).length} certifications`;if(item.rule==='memberField'){const values=r.values||{};const done=teamMembers(team.id).filter(m=>memberFieldComplete(item,values[m.name])).length;return `${done}/${r.rosterSize||teamMembers(team.id).length} members`};if(item.rule==='manual')return r.note||'No award yet';if(item.rule==='manualAwards')return `${(r.awards||[]).length} award${(r.awards||[]).length===1?'':'s'}`;return ''}
@@ -640,27 +649,43 @@ function mentorWorkspaceHtml(item){
       else if(r.scoredAt)status='<span class="status-pill done">Scored previously</span>';
       else status='<span class="status-pill">Not ready</span>';
     }else{
-      status=resultHasEvidence(r)?'<span class="status-pill done">Scoring entered</span>':'<span class="status-pill">Needs score</span>';
+      status=resultHasEvidence(r)?'<span class="status-pill done">Activity recorded</span>':'<span class="status-pill">No activity yet</span>';
     }
     const meta=r.scoredAt?`Last save ${new Date(r.scoredAt).toLocaleString()}${r.scoredBy?' by '+esc(r.scoredBy):''}`:'No scoring save yet';
-    return `<div class="workspace-team-row"><div><div class="workspace-team-name">${esc(teamName(t))} ${status}</div><div class="workspace-meta">${meta} · ${money(r.points||0)} points</div></div><div class="task-action"><button class="secondary" onclick="openSpecificScore('${t.id}','${item.id}')">Score / edit</button></div></div>`;
+    return `<div class="workspace-team-row"><div><div class="workspace-team-name">${esc(teamName(t))} ${status}</div><div class="workspace-meta">${meta} · ${money(r.points||0)} points</div></div><div class="task-action"><button class="secondary" onclick="openSpecificScore('${t.id}','${item.id}')">Open</button></div></div>`;
   };
   const readyTeams=isTeamReadyItem(item)?teams.filter(t=>readyNeedsScoring(result(t.id,item.id))):teams;
   const otherTeams=isTeamReadyItem(item)?teams.filter(t=>!readyNeedsScoring(result(t.id,item.id))):[];
-  return `<div class="mutedbox" style="margin:8px 0 12px"><div class="inline-actions" style="margin-bottom:8px">${mentorImportButton(item)}</div><div class="tiny" style="margin-bottom:7px">${isTeamReadyItem(item)?'Teams marked Ready are shown first.':'Score this item from external evidence across the Sprint Teams.'}</div>${isTeamReadyItem(item)?`<div class="subsection-label">Ready now</div>${readyTeams.length?readyTeams.map(row).join(''):'<div class="tiny" style="padding:8px 0">No teams are waiting for scoring.</div>'}<div class="subsection-label">Other teams</div>${otherTeams.map(row).join('')}`:teams.map(row).join('')}</div>`;
+  let help='';
+  if(isTeamReadyItem(item))help='Teams marked Ready are shown first.';
+  else if(item.recorder==='team')help='Normally recorded by the Sprint Team. Coach/Scoring Mentor can review or correct it here.';
+  else if(item.recorder==='coach')help='Coach-recorded item.';
+  else help='Scoring Mentor records this item across the Sprint Teams.';
+  return `<div class="mutedbox" style="margin:8px 0 12px"><div class="inline-actions" style="margin-bottom:8px">${mentorImportButton(item)}</div><div class="tiny" style="margin-bottom:7px">${esc(help)}</div>${isTeamReadyItem(item)?`<div class="subsection-label">Ready now</div>${readyTeams.length?readyTeams.map(row).join(''):'<div class="tiny" style="padding:8px 0">No teams are waiting for scoring.</div>'}<div class="subsection-label">Other teams</div>${otherTeams.map(row).join('')}`:teams.map(row).join('')}</div>`;
+}
+function scoreItemMeta(i){
+  const c=mentorItemCounts(i);
+  let status='';
+  if(isTeamReadyItem(i))status=`${c.ready} ready now · ${c.scored}/${c.total} teams have activity`;
+  else status=`${c.scored}/${c.total} teams have activity`;
+  const recorder=i.recorder==='team'?'Sprint Team':i.recorder==='coach'?'Coach':'Scoring Mentor';
+  const input=i.inputMethod==='apolloScreenshot'?' · Apollo screenshot':i.inputMethod==='surveyPaste'?' · Survey import':i.inputMethod==='gpNominationPaste'?' · GP import':'';
+  return {recorder,status:status+input};
 }
 function renderMentorItemList(){
   const u=currentUser(),show=u&&(u.role==='coach'||u.role==='scoringMentor');
   mentorItemPanel.classList.toggle('hidden',!show);
   mentorItemWorkspace.classList.add('hidden');
   if(!show){mentorItemList.innerHTML='';return}
-  const items=state.items.filter(i=>i.recorder==='mentor');
-  mentorItemList.innerHTML=items.length?items.map(i=>{
-    const c=mentorItemCounts(i);
-    const meta=isTeamReadyItem(i)?`${c.ready} Sprint Team${c.ready===1?'':'s'} ready now · ${c.scored}/${c.total} have scoring activity`:`External evidence · ${c.scored}/${c.total} have scoring activity`;
-    const expanded=activeMentorItemId===i.id;
-    return `<div><div class="mentor-item-row"><div><div class="mentor-item-title">${esc(i.name)}</div><div class="mentor-item-meta">${esc(meta)}${i.dueAt?' · '+esc(deadlineLabel(i)):''}</div></div><div class="task-action"><button class="secondary" onclick="openMentorItem('${i.id}')">${expanded?'Close':'Score item'}</button></div></div>${expanded?mentorWorkspaceHtml(i):''}</div>`;
-  }).join(''):'<div class="tiny">No Scoring Mentor items in this sprint.</div>';
+  const allowed=i=>u.role==='coach'||i.recorder!=='coach';
+  const groups=state.categories.map(cat=>({cat,items:state.items.filter(i=>i.categoryId===cat.id&&allowed(i))})).filter(g=>g.items.length);
+  mentorItemList.innerHTML=groups.length?groups.map(g=>{
+    const rows=g.items.map(i=>{
+      const m=scoreItemMeta(i),expanded=activeMentorItemId===i.id;
+      return `<div><div class="mentor-item-row"><div><div class="mentor-item-title">${esc(i.name)}</div><div class="mentor-item-meta"><span class="recorder-badge">${esc(m.recorder)}</span>${esc(m.status)}${i.dueAt?' · '+esc(deadlineLabel(i)):''}</div></div><div class="task-action"><button class="secondary" onclick="openMentorItem('${i.id}')">${expanded?'Close':'Open'}</button></div></div>${expanded?mentorWorkspaceHtml(i):''}</div>`;
+    }).join('');
+    return `<div class="score-category"><div class="score-category-head"><span>${esc(g.cat.name)}</span><span class="tiny">${g.items.length} item${g.items.length===1?'':'s'}</span></div><div class="score-category-items">${rows}</div></div>`;
+  }).join(''):'<div class="tiny">No scoring items in this sprint.</div>';
 }
 function openMentorItem(itemId){
   activeMentorItemId=activeMentorItemId===itemId?'':itemId;
@@ -679,7 +704,7 @@ function openSpecificScore(teamId,itemId){
   specificScoreCard.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-function renderRecordSelectors(){const u=currentUser();if(!u){teamSelect.innerHTML='';itemSelect.innerHTML='';dynamicInput.innerHTML='';saveBtn.disabled=true;return}const ts=eligibleTeams();teamSelect.innerHTML=ts.map(t=>`<option value="${t.id}">${teamName(t)}</option>`).join('');if(ts.length){if(!ts.some(t=>t.id===teamSelect.value))teamSelect.value=ts[0].id;renderItemOptions()}else{itemSelect.innerHTML='';dynamicInput.innerHTML='<div class="notice">No editable Sprint Team.</div>';saveBtn.disabled=true}recordHint.textContent=currentUser().role==='member'?'See what your Sprint Team can do, record, or send to mentors for scoring.':currentUser().role==='scoringMentor'?'Choose a scoring item first, then work through the Sprint Teams.':'Coach can score by item or make a specific team correction.';renderStudentActivities();renderMentorItemList()}
+function renderRecordSelectors(){const u=currentUser();if(!u){teamSelect.innerHTML='';itemSelect.innerHTML='';dynamicInput.innerHTML='';saveBtn.disabled=true;return}const ts=eligibleTeams();teamSelect.innerHTML=ts.map(t=>`<option value="${t.id}">${teamName(t)}</option>`).join('');if(ts.length){if(!ts.some(t=>t.id===teamSelect.value))teamSelect.value=ts[0].id;renderItemOptions()}else{itemSelect.innerHTML='';dynamicInput.innerHTML='<div class="notice">No editable Sprint Team.</div>';saveBtn.disabled=true}recordHint.textContent=currentUser().role==='member'?'See what your Sprint Team can do, record, or send to mentors for scoring.':currentUser().role==='scoringMentor'?'Review and score the items available to Scoring Mentors.':'Coach view · all scoring items';renderStudentActivities();renderMentorItemList()}
 function renderItemOptions(){const teamId=teamSelect.value;const items=eligibleItems(teamId);const allowed=new Set(items.map(i=>i.id));let html='',ordered=[];for(const c of state.categories){const catItems=state.items.filter(i=>i.categoryId===c.id&&allowed.has(i.id));if(!catItems.length)continue;ordered.push(...catItems);html+=`<optgroup label="${esc(c.name)}">${catItems.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('')}</optgroup>`}itemSelect.innerHTML=html;if(ordered.length&&!ordered.some(i=>i.id===itemSelect.value))itemSelect.value=ordered[0].id;renderDynamic()}
 function renderDynamic(){const team=state.teams.find(t=>t.id===teamSelect.value),item=state.items.find(i=>i.id===itemSelect.value);if(!team||!item){dynamicInput.innerHTML='<div class="notice">No scoring items are editable for this role.</div>';saveBtn.disabled=true;return}saveBtn.disabled=!canRecord(item,team.id);const r=result(team.id,item.id);let html=`<div class="notice"><b>${item.name}</b><br>${item.instructions}<br><span class="tiny">Who records this: ${recorderName(item.recorder)}${item.dueAt?' · '+deadlineLabel(item):''}</span></div>`;
  if(item.rule==='completion')html+=`<div class="field"><label>${item.special==='teamName'?'Sprint Team Name':'Evidence / text / link'}</label><textarea id="textVal" maxlength="500">${esc(r.text||'')}</textarea><div class="tiny">500 character maximum.</div></div>`;
