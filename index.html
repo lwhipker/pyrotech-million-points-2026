@@ -589,12 +589,15 @@ function matrixRows(){
 }
 function renderMatrixReport(){
   const d=matrixRows();
-  reportOutput.innerHTML=`<div class="eyebrow">Sprint Report</div><h2 style="margin:4px 0">Scoring Matrix</h2><div class="sub" style="margin-bottom:10px">Points by scoring item and Sprint Team</div><div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Category / Scoring Item</th>${d.teams.map(t=>`<th>${esc(teamName(t))}</th>`).join('')}</tr></thead><tbody>${d.rows.map(r=>{if(r.type==='category')return `<tr class="matrix-category"><td colspan="${d.teams.length+1}">${esc(r.label)}</td></tr>`;const cls=r.type==='subtotal'?'matrix-subtotal':r.type==='total'?'matrix-total':'';return `<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map(v=>`<td>${money(v)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>`;
+  reportOutput.innerHTML=`<div class="eyebrow">Sprint Report</div><h2 style="margin:4px 0">Scoring Matrix</h2><div class="sub" style="margin-bottom:10px">Points by scoring item and Sprint Team</div><div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Category / Scoring Item</th>${d.teams.map(t=>`<th>${esc(teamName(t))}</th>`).join('')}</tr></thead><tbody>${d.rows.map(r=>{if(r.type==='category')return `<tr class="matrix-category"><td colspan="${d.teams.length+1}">${esc(r.label)}</td></tr>`;const cls=r.type==='subtotal'?'matrix-subtotal':r.type==='total'?'matrix-total':'';return `<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map(v=>`<td>${money(v)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>${rosterArchiveHtml(d.teams)}`;
+}
+function rosterArchiveHtml(teams){
+  return `<div style="margin-top:20px"><div class="eyebrow">Sprint Team Rosters</div><div class="grid" style="margin-top:8px">${teams.map(t=>`<div class="mutedbox"><b>${esc(teamName(t))}</b><div class="tiny" style="margin-top:5px">${teamMembers(t.id).map(p=>esc(p.name)).join(' · ')||'No members recorded'}</div></div>`).join('')}</div></div>`;
 }
 function renderPublicMatrix(){
   if(!window.publicMatrixOutput)return;
   const d=matrixRows();
-  publicMatrixOutput.innerHTML=`<div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Category / Scoring Item</th>${d.teams.map(t=>`<th>${esc(teamName(t))}</th>`).join('')}</tr></thead><tbody>${d.rows.map(r=>{if(r.type==='category')return `<tr class="matrix-category"><td colspan="${d.teams.length+1}">${esc(r.label)}</td></tr>`;const cls=r.type==='subtotal'?'matrix-subtotal':r.type==='total'?'matrix-total':'';return `<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map(v=>`<td>${money(v)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>`;
+  publicMatrixOutput.innerHTML=`<div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Category / Scoring Item</th>${d.teams.map(t=>`<th>${esc(teamName(t))}</th>`).join('')}</tr></thead><tbody>${d.rows.map(r=>{if(r.type==='category')return `<tr class="matrix-category"><td colspan="${d.teams.length+1}">${esc(r.label)}</td></tr>`;const cls=r.type==='subtotal'?'matrix-subtotal':r.type==='total'?'matrix-total':'';return `<tr class="${cls}"><td>${esc(r.label)}</td>${r.values.map(v=>`<td>${money(v)}</td>`).join('')}</tr>`}).join('')}</tbody></table></div>${rosterArchiveHtml(d.teams)}`;
 }
 function matrixReportData(){
   const d=matrixRows();
